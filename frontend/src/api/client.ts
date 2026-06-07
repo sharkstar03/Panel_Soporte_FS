@@ -39,6 +39,8 @@ export const branchesApi = {
 export const assetsApi = {
   list: (params?: { branch_id?: number; q?: string }) =>
     api.get<import('./types').Asset[]>('/assets', { params }),
+  remoteSecrets: (id: number) =>
+    api.get<{ anydesk_password: string | null; rustdesk_password: string | null; teamviewer_password: string | null }>(`/assets/${id}/remote-secrets`),
   create: (data: import('./types').AssetCreateIn) => api.post<import('./types').Asset>('/assets', data),
   update: (id: number, data: Partial<import('./types').AssetCreateIn>) =>
     api.put<import('./types').Asset>(`/assets/${id}`, data),
@@ -140,6 +142,8 @@ export const documentsApi = {
     api.get<import('./types').Document>(`/documents/${id}`),
   create: (data: import('./types').DocumentCreateIn) =>
     api.post<import('./types').Document>('/documents', data),
+  update: (id: number, data: { title: string; data_json: string }) =>
+    api.put<import('./types').Document>(`/documents/${id}`, data),
   delete: (id: number) =>
     api.delete(`/documents/${id}`),
   downloadPdf: (id: number) =>
@@ -160,6 +164,18 @@ export const documentsApi = {
   },
   downloadEvidence: (id: number, evidenceId: number) =>
     api.get(`/documents/${id}/evidence/${evidenceId}`, { responseType: 'blob' }),
+}
+
+export const documentTemplatesApi = {
+  list: (params?: { doc_type?: string }) =>
+    api.get<import('./types').DocumentTemplate[]>('/document-templates', { params }),
+  create: (data: { name: string; doc_type: string; html: string; is_default: boolean }) =>
+    api.post<import('./types').DocumentTemplate>('/document-templates', data),
+  update: (id: number, data: { name: string; doc_type: string; html: string; is_default: boolean }) =>
+    api.put<import('./types').DocumentTemplate>(`/document-templates/${id}`, data),
+  delete: (id: number) => api.delete(`/document-templates/${id}`),
+  render: (data: { html: string; data_json: string; title?: string }) =>
+    api.post<{ html: string }>('/document-templates/render', data),
 }
 
 export const adminApi = {

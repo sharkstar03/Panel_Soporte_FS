@@ -82,6 +82,33 @@ def run_migrations() -> None:
             if "category" not in kb_cols:
                 conn.execute(text("ALTER TABLE kbarticle ADD COLUMN category VARCHAR DEFAULT 'general';"))
 
+        try:
+            conn.execute(text("CREATE TYPE documenttype AS ENUM ('entrega_equipo','control_equipo','pago_proveedor','checklist_diario');"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("CREATE TYPE documentstatus AS ENUM ('pending','approved','rejected');"))
+        except Exception:
+            pass
+
+        if not inspector.has_table("documenttemplate"):
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS documenttemplate (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR NOT NULL UNIQUE,
+                    doc_type documenttype NOT NULL,
+                    html TEXT NOT NULL,
+                    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+                    created_by_id INTEGER NOT NULL REFERENCES "user"(id),
+                    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS ix_documenttemplate_name ON documenttemplate(name);
+                CREATE INDEX IF NOT EXISTS ix_documenttemplate_doc_type ON documenttemplate(doc_type);
+                CREATE INDEX IF NOT EXISTS ix_documenttemplate_is_default ON documenttemplate(is_default);
+                CREATE INDEX IF NOT EXISTS ix_documenttemplate_created_by_id ON documenttemplate(created_by_id);
+                CREATE INDEX IF NOT EXISTS ix_documenttemplate_updated_at ON documenttemplate(updated_at);
+            """))
+
         # Crear tabla document
         if not inspector.has_table("document"):
             try:
@@ -114,6 +141,9 @@ def run_migrations() -> None:
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_document_created_by_id ON document(created_by_id);"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_document_token ON document(token);"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_document_title ON document(title);"))
+        conn.execute(text("ALTER TABLE document ADD COLUMN IF NOT EXISTS template_id INTEGER;"))
+        conn.execute(text("ALTER TABLE document ADD COLUMN IF NOT EXISTS rendered_html TEXT;"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_document_template_id ON document(template_id);"))
 
         # Crear tabla documentevidence
         if not inspector.has_table("documentevidence"):

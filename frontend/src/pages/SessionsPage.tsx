@@ -12,6 +12,7 @@ import { PageLoader } from '../components/ui/Spinner'
 import { TOOL_META, type ToolId } from '../components/ToolLogos'
 import type { SessionCreateIn, SessionCloseIn, SessionResult, RemoteTool, SupportSession } from '../api/types'
 import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
 
 const toolLabel: Record<RemoteTool, string> = { anydesk: 'AnyDesk', rustdesk: 'RustDesk', teamviewer: 'TeamViewer', ultravnc: 'UltraVNC', rdp: 'Remote Desktop' }
 const resultLabel: Record<SessionResult, string> = {
@@ -31,6 +32,7 @@ function statusBadge(s: SupportSession) {
 
 export function SessionsPage() {
   const qc = useQueryClient()
+  const { can } = useAuth()
   const [showCreate, setShowCreate] = useState(false)
   const [closing, setClosing] = useState<SupportSession | null>(null)
   const [connecting, setConnecting] = useState<SupportSession | null>(null)
@@ -55,6 +57,12 @@ export function SessionsPage() {
       qc.invalidateQueries({ queryKey: ['sessions'] })
       setConnecting(null)
     },
+  })
+
+  const secretsQ = useQuery({
+    queryKey: ['asset-remote-secrets', connecting?.asset_id],
+    queryFn: () => assetsApi.remoteSecrets(Number(connecting?.asset_id)).then((r) => r.data),
+    enabled: !!connecting?.asset_id && can('assets.reveal'),
   })
 
   const closeSession = useMutation({
@@ -174,6 +182,7 @@ export function SessionsPage() {
           <ConnectModal
             session={connecting}
             asset={assets.find(a => a.id === connecting.asset_id)}
+            secrets={secretsQ.data}
             onConnect={() => connect.mutate(connecting.id)}
             onClose={() => setConnecting(null)}
             isPending={connect.isPending}
@@ -359,9 +368,10 @@ function CreateSessionForm({ assets, branches, onSave, onCancel, loading, error 
   )
 }
 
-function ConnectModal({ session, asset, onConnect, onClose, isPending, error }: {
+function ConnectModal({ session, asset, secrets, onConnect, onClose, isPending, error }: {
   session: SupportSession
   asset: import('../api/types').Asset | undefined
+  secrets: { anydesk_password: string | null; rustdesk_password: string | null; teamviewer_password: string | null } | undefined
   onConnect: () => void
   onClose: () => void
   isPending: boolean
@@ -382,15 +392,15 @@ function ConnectModal({ session, asset, onConnect, onClose, isPending, error }: 
 
   if (toolId === 'anydesk') {
     idValue = asset.anydesk_id ?? ''
-    passValue = asset.anydesk_password
+    passValue = secrets?.anydesk_password ?? null
     uri = `anydesk:${idValue}`
   } else if (toolId === 'rustdesk') {
     idValue = asset.rustdesk_id ?? ''
-    passValue = asset.rustdesk_password
+    passValue = secrets?.rustdesk_password ?? null
     uri = `rustdesk://connection/new/${idValue}`
   } else if (toolId === 'teamviewer') {
     idValue = asset.teamviewer_id ?? ''
-    passValue = asset.teamviewer_password
+    passValue = secrets?.teamviewer_password ?? null
     uri = `teamviewer10://control?partner=${idValue}`
   } else if (toolId === 'ultravnc') {
     idValue = asset.vnc_host ? `${asset.vnc_host}:${asset.vnc_port}` : ''

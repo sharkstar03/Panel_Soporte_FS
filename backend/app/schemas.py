@@ -319,6 +319,11 @@ class DocumentCreateIn(BaseModel):
     approver_email: str
 
 
+class DocumentUpdateIn(BaseModel):
+    title: str
+    data_json: str          # JSON-encoded form fields
+
+
 class DocumentEvidenceOut(BaseModel):
     id: int
     document_id: int

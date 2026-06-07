@@ -37,6 +37,16 @@ export interface Role {
   permissions: string[]
 }
 
+export interface DocumentTemplate {
+  id: number
+  name: string
+  doc_type: DocumentType
+  html: string
+  is_default: boolean
+  created_by_id: number
+  updated_at: string
+}
+
 export interface SupervisorUser {
   id: number
   username: string

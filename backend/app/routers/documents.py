@@ -10,13 +10,14 @@ from sqlmodel import Session, select
 from app.audit import log_event
 from app.deps import get_current_user, get_db, require_permissions
 from app.email import send_approval_email
-from app.models import Document, DocumentEvidence, DocumentStatus, SessionEventType, User, UserRole
-from app.pdf import generate_pdf_bytes
+from app.models import Document, DocumentEvidence, DocumentStatus, DocumentTemplate, SessionEventType, User, UserRole
+from app.pdf import generate_html_pdf_bytes, generate_pdf_bytes
 from app.s3 import s3_client
 from app.config import settings
-from app.schemas import DocumentCreateIn, DocumentEvidenceOut, DocumentOut
+from app.schemas import DocumentCreateIn, DocumentEvidenceOut, DocumentOut, DocumentUpdateIn
 from sqlmodel import delete as sqlmodel_delete
 from app.settings_helper import get_setting
+from app.template_render import render_template_html
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -51,6 +52,14 @@ def create_document(
 ):
     token = secrets.token_urlsafe(32)
     expiry_days = int(get_setting(db, "doc_token_expiry_days", 7))
+
+    template = db.exec(
+        select(DocumentTemplate)
+        .where(DocumentTemplate.doc_type == payload.type)
+        .where(DocumentTemplate.is_default == True)  # noqa: E712
+        .order_by(DocumentTemplate.updated_at.desc())
+    ).first()
+
     doc = Document(
         type=payload.type,
         title=payload.title.strip(),
@@ -61,6 +70,15 @@ def create_document(
         token=token,
         token_expires_at=datetime.utcnow() + timedelta(days=expiry_days),
     )
+    if template:
+        doc.template_id = template.id
+        doc.rendered_html = render_template_html(
+            template.html,
+            payload.data_json,
+            title=doc.title,
+            creator_username=user.username,
+            created_at=doc.created_at,
+        )
     db.add(doc)
     db.commit()
     db.refresh(doc)
@@ -114,6 +132,57 @@ def get_document(
     return DocumentOut.model_validate(doc, from_attributes=True)
 
 
+@router.put("/{doc_id}", response_model=DocumentOut, dependencies=[Depends(require_permissions("documents.update"))])
+def update_document(
+    doc_id: int,
+    payload: DocumentUpdateIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    doc = db.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+    if doc.status != DocumentStatus.pending:
+        raise HTTPException(status_code=400, detail="Solo se pueden editar documentos pendientes")
+    if user.role == UserRole.tecnico and doc.created_by_id != user.id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    doc.title = payload.title.strip()
+    doc.data_json = payload.data_json
+
+    if doc.template_id:
+        t = db.get(DocumentTemplate, doc.template_id)
+        if t:
+            doc.rendered_html = render_template_html(
+                t.html,
+                doc.data_json,
+                title=doc.title,
+                creator_username=user.username,
+                created_at=doc.created_at,
+            )
+    else:
+        template = db.exec(
+            select(DocumentTemplate)
+            .where(DocumentTemplate.doc_type == doc.type)
+            .where(DocumentTemplate.is_default == True)  # noqa: E712
+            .order_by(DocumentTemplate.updated_at.desc())
+        ).first()
+        if template:
+            doc.template_id = template.id
+            doc.rendered_html = render_template_html(
+                template.html,
+                doc.data_json,
+                title=doc.title,
+                creator_username=user.username,
+                created_at=doc.created_at,
+            )
+
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return DocumentOut.model_validate(doc, from_attributes=True)
+
+
 @router.get("/{doc_id}/pdf", dependencies=[Depends(require_permissions("documents.view"))])
 def download_pdf(
     doc_id: int,
@@ -130,7 +199,11 @@ def download_pdf(
               metadata={"document_id": doc.id})
 
     company = get_setting(db, "doc_company_name", "") or get_setting(db, "app_name", "QUANTIUM CREW")
-    pdf_bytes = generate_pdf_bytes(doc, company_name=company)
+    pdf_bytes = (
+        generate_html_pdf_bytes(doc.rendered_html, company_name=company)
+        if doc.rendered_html
+        else generate_pdf_bytes(doc, company_name=company)
+    )
     safe_title = doc.title.replace(" ", "_")[:40]
     return Response(
         content=pdf_bytes,

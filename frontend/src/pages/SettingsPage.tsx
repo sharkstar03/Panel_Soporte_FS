@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { settingsApi } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/Button'
 import { Input, Textarea } from '../components/ui/Input'
@@ -15,6 +16,8 @@ import { Badge } from '../components/ui/Badge'
 import { BranchManager } from '../components/BranchManager'
 import { DangerZone } from '../components/DangerZone'
 import type { SystemSetting } from '../api/types'
+import { RBACPage } from './RBACPage'
+import { DocumentTemplatesPage } from './DocumentTemplatesPage'
 
 const categoryLabels: Record<string, string> = {
   branding: 'Marca e identidad',
@@ -93,9 +96,31 @@ function inferInputType(val: any): 'text' | 'number' | 'checkbox' | 'textarea' {
 
 export function SettingsPage() {
   const qc = useQueryClient()
-  const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'general' | 'branches' | 'danger'>('general')
+  const { user, can } = useAuth()
+  const [sp, setSp] = useSearchParams()
+  const tabParam = sp.get('tab') || 'general'
+  const allowRoles = can('rbac.manage')
+  const allowTemplates = can('documents.templates.manage')
+  const allowDanger = user?.role === 'admin'
+
+  const allowedTabs = useMemo(() => {
+    const base = ['general', 'branches']
+    const extra: string[] = []
+    if (allowTemplates) extra.push('templates')
+    if (allowRoles) extra.push('roles')
+    if (allowDanger) extra.push('danger')
+    return [...base, ...extra]
+  }, [allowTemplates, allowRoles, allowDanger])
+
+  const [activeTab, setActiveTab] = useState<'general' | 'branches' | 'templates' | 'roles' | 'danger'>(
+    (allowedTabs.includes(tabParam) ? tabParam : 'general') as any
+  )
   const [edits, setEdits] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const next = (allowedTabs.includes(tabParam) ? tabParam : 'general') as any
+    setActiveTab(next)
+  }, [tabParam, allowedTabs.join('|')])
 
   const { data: settings = [], isLoading } = useQuery({
     queryKey: ['settings'],
@@ -146,12 +171,12 @@ export function SettingsPage() {
   }
 
   const tabs = [
-    { id: 'general' as const, label: 'Configuración del sistema', icon: Settings },
-    { id: 'branches' as const, label: 'Sucursales', icon: Building2 },
-    ...(user?.role === 'admin'
-      ? [{ id: 'danger' as const, label: 'Zona de Peligro', icon: Skull }]
-      : []),
-  ]
+    { id: 'general' as const, label: 'Sistema', icon: Settings, show: true },
+    { id: 'branches' as const, label: 'Sucursales', icon: Building2, show: true },
+    { id: 'templates' as const, label: 'Plantillas', icon: FileText, show: allowTemplates },
+    { id: 'roles' as const, label: 'Roles y permisos', icon: Shield, show: allowRoles },
+    { id: 'danger' as const, label: 'Zona de Peligro', icon: Skull, show: allowDanger },
+  ].filter(t => t.show)
 
   return (
     <div className="animate-fade-in">
@@ -161,162 +186,193 @@ export function SettingsPage() {
         icon={<Settings size={16} />}
       />
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 bg-elevated/40 border border-border rounded-lg p-1 w-fit">
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          const active = activeTab === tab.id
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-sans font-medium transition-all ${
-                tab.id === 'danger'
-                  ? active
-                    ? 'bg-red-900/30 text-red-300 border border-red-700/40'
-                    : 'text-red-500/70 hover:text-red-400 hover:bg-red-900/20 border border-transparent'
-                  : active
-                    ? 'bg-cyan/10 text-cyan border border-cyan/20'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-elevated border border-transparent'
-              }`}
-            >
-              <Icon size={14} />
-              {tab.label}
-            </button>
-          )
-        })}
-      </div>
-
-      <AnimatePresence mode="wait">
-        {activeTab === 'general' ? (
-          <motion.div
-            key="general"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-8"
-          >
-            {categoryOrder.map((cat) => {
-              const catSettings = grouped[cat]
-              if (!catSettings?.length) return null
-              const CatIcon = categoryIcons[cat] || SlidersHorizontal
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+        <aside className="bg-panel border border-border rounded-xl p-3 h-fit sticky top-6">
+          <div className="space-y-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const active = activeTab === tab.id
               return (
-                <motion.section
-                  key={cat}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setSp((prev) => {
+                      const next = new URLSearchParams(prev)
+                      next.set('tab', tab.id)
+                      return next
+                    })
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-sans transition-all duration-150 ${
+                    tab.id === 'danger'
+                      ? active
+                        ? 'bg-red-900/30 text-red-300 border border-red-700/40'
+                        : 'text-red-500/70 hover:text-red-400 hover:bg-red-900/20 border border-transparent'
+                      : active
+                        ? 'bg-cyan/10 text-cyan border border-cyan/20 shadow-cyan-glow'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-elevated border border-transparent'
+                  }`}
                 >
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-7 h-7 rounded-md bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
-                      <CatIcon size={14} />
-                    </div>
-                    <h2 className="font-display font-semibold text-sm text-text-primary tracking-wide">
-                      {categoryLabels[cat] || cat}
-                    </h2>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-
-                  <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border/50">
-                    {catSettings.map((s) => {
-                      const parsed = parseValue(s.value)
-                      const inputType = inferInputType(parsed)
-                      const editedVal = edits[s.key] !== undefined ? edits[s.key] : formatValue(parsed)
-                      const hasChanged = edits[s.key] !== undefined
-                      const label = settingLabels[s.key] || s.key
-
-                      return (
-                        <div key={s.key} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-sans font-medium text-text-primary">{label}</span>
-                              {hasChanged && <Badge variant="amber" dot>Modificado</Badge>}
-                            </div>
-                            {s.description && (
-                              <p className="text-xs text-text-muted font-sans">{s.description}</p>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 min-w-[220px]">
-                            {inputType === 'checkbox' ? (
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={editedVal === 'true'}
-                                  onChange={(e) => handleChange(s.key, e.target.checked ? 'true' : 'false')}
-                                  className="w-4 h-4 accent-cyan rounded"
-                                />
-                                <span className="text-sm text-text-secondary font-sans">
-                                  {editedVal === 'true' ? 'Activado' : 'Desactivado'}
-                                </span>
-                              </label>
-                            ) : inputType === 'textarea' ? (
-                              <Textarea
-                                value={editedVal}
-                                onChange={(e) => handleChange(s.key, e.target.value)}
-                                rows={4}
-                                className="font-mono text-xs min-h-[96px]"
-                              />
-                            ) : (
-                              <Input
-                                type={inputType}
-                                value={editedVal}
-                                onChange={(e) => handleChange(s.key, e.target.value)}
-                              />
-                            )}
-
-                            <div className="flex items-center gap-1">
-                              <Button
-                                size="sm"
-                                onClick={() => handleSave(s.key, s.value)}
-                                loading={update.isPending && update.variables?.key === s.key}
-                                className="px-2 py-1"
-                              >
-                                <Save size={13} />
-                              </Button>
-                              {hasChanged && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleReset(s.key)}
-                                  className="px-2 py-1"
-                                >
-                                  <RotateCcw size={13} />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </motion.section>
+                  <Icon size={15} />
+                  <span className="truncate">{tab.label}</span>
+                </button>
               )
             })}
-          </motion.div>
-        ) : activeTab === 'branches' ? (
-          <motion.div
-            key="branches"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            <BranchManager open={true} onClose={() => {}} inline />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="danger"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            <DangerZone />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </aside>
+
+        <section>
+          <AnimatePresence mode="wait">
+            {activeTab === 'general' ? (
+              <motion.div
+                key="general"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-8"
+              >
+                {categoryOrder.map((cat) => {
+                  const catSettings = grouped[cat]
+                  if (!catSettings?.length) return null
+                  const CatIcon = categoryIcons[cat] || SlidersHorizontal
+                  return (
+                    <motion.section
+                      key={cat}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-7 h-7 rounded-md bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+                          <CatIcon size={14} />
+                        </div>
+                        <h2 className="font-display font-semibold text-sm text-text-primary tracking-wide">
+                          {categoryLabels[cat] || cat}
+                        </h2>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+
+                      <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border/50">
+                        {catSettings.map((s) => {
+                          const parsed = parseValue(s.value)
+                          const inputType = inferInputType(parsed)
+                          const editedVal = edits[s.key] !== undefined ? edits[s.key] : formatValue(parsed)
+                          const hasChanged = edits[s.key] !== undefined
+                          const label = settingLabels[s.key] || s.key
+
+                          return (
+                            <div key={s.key} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-sans font-medium text-text-primary">{label}</span>
+                                  {hasChanged && <Badge variant="amber" dot>Modificado</Badge>}
+                                </div>
+                                {s.description && (
+                                  <p className="text-xs text-text-muted font-sans">{s.description}</p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-3 min-w-[220px]">
+                                {inputType === 'checkbox' ? (
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={editedVal === 'true'}
+                                      onChange={(e) => handleChange(s.key, e.target.checked ? 'true' : 'false')}
+                                      className="w-4 h-4 accent-cyan rounded"
+                                    />
+                                    <span className="text-sm text-text-secondary font-sans">
+                                      {editedVal === 'true' ? 'Activado' : 'Desactivado'}
+                                    </span>
+                                  </label>
+                                ) : inputType === 'textarea' ? (
+                                  <Textarea
+                                    value={editedVal}
+                                    onChange={(e) => handleChange(s.key, e.target.value)}
+                                    rows={4}
+                                    className="font-mono text-xs min-h-[96px]"
+                                  />
+                                ) : (
+                                  <Input
+                                    type={inputType}
+                                    value={editedVal}
+                                    onChange={(e) => handleChange(s.key, e.target.value)}
+                                  />
+                                )}
+
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleSave(s.key, s.value)}
+                                    loading={update.isPending && update.variables?.key === s.key}
+                                    className="px-2 py-1"
+                                  >
+                                    <Save size={13} />
+                                  </Button>
+                                  {hasChanged && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleReset(s.key)}
+                                      className="px-2 py-1"
+                                    >
+                                      <RotateCcw size={13} />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </motion.section>
+                  )
+                })}
+              </motion.div>
+            ) : activeTab === 'branches' ? (
+              <motion.div
+                key="branches"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <BranchManager open={true} onClose={() => {}} inline />
+              </motion.div>
+            ) : activeTab === 'templates' ? (
+              <motion.div
+                key="templates"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DocumentTemplatesPage embedded />
+              </motion.div>
+            ) : activeTab === 'roles' ? (
+              <motion.div
+                key="roles"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <RBACPage embedded />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="danger"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DangerZone />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+      </div>
     </div>
   )
 }

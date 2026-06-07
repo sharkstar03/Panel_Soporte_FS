@@ -266,6 +266,8 @@ class Document(SQLModel, table=True):
     type: DocumentType = Field(index=True)
     title: str = Field(index=True)
     data_json: str  # JSON blob of form fields
+    template_id: Optional[int] = Field(default=None, foreign_key="documenttemplate.id", index=True)
+    rendered_html: Optional[str] = None
     status: DocumentStatus = Field(default=DocumentStatus.pending, index=True)
     created_by_id: int = Field(foreign_key="user.id", index=True)
     approver_email: str
@@ -285,6 +287,16 @@ class DocumentEvidence(SQLModel, table=True):
     filename: str
     mime: str
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class DocumentTemplate(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True)
+    doc_type: DocumentType = Field(index=True)
+    html: str
+    is_default: bool = Field(default=False, index=True)
+    created_by_id: int = Field(foreign_key="user.id", index=True)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, index=True)
 
 
 class Permission(SQLModel, table=True):

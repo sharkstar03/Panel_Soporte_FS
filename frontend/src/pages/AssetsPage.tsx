@@ -27,9 +27,9 @@ function AssetForm({ initial, onSave, onCancel, loading, branches }: {
 }) {
   const [f, setF] = useState<AssetCreateIn>({
     name: '', type: 'pc', owner: '', location: '', notes: '', branch_id: undefined,
-    hostname: '', ip: '', anydesk_id: '', anydesk_password: '',
-    rustdesk_id: '', rustdesk_password: '',
-    teamviewer_id: '', teamviewer_password: '',
+    hostname: '', ip: '', anydesk_id: '', anydesk_password: undefined,
+    rustdesk_id: '', rustdesk_password: undefined,
+    teamviewer_id: '', teamviewer_password: undefined,
     vnc_host: '', vnc_port: 5900,
     rdp_host: '', rdp_port: 3389, rdp_username: '',
     sensitive: false,
@@ -40,8 +40,17 @@ function AssetForm({ initial, onSave, onCancel, loading, branches }: {
   const set = (k: keyof AssetCreateIn) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF(p => ({ ...p, [k]: e.target.value }))
 
+  const submit = () => {
+    onSave({
+      ...f,
+      anydesk_password: f.anydesk_password ? f.anydesk_password : undefined,
+      rustdesk_password: f.rustdesk_password ? f.rustdesk_password : undefined,
+      teamviewer_password: f.teamviewer_password ? f.teamviewer_password : undefined,
+    })
+  }
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(f) }} className="space-y-4">
+    <form onSubmit={(e) => { e.preventDefault(); submit() }} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <FormField label="Nombre *">
           <Input value={f.name} onChange={set('name')} placeholder="PC-CONTABILIDAD" required />

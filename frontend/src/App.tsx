@@ -15,7 +15,6 @@ import { DocumentsPage } from './pages/DocumentsPage'
 import { NewDocumentPage } from './pages/NewDocumentPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { ApprovalPage } from './pages/ApprovalPage'
-import { RBACPage } from './pages/RBACPage'
 import { PageLoader } from './components/ui/Spinner'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -43,7 +42,8 @@ export default function App() {
         <Route path="kb" element={<KBPage />} />
         <Route path="links" element={<LinksPage />} />
         <Route path="users" element={<RequirePerm perm="users.manage"><UsersPage /></RequirePerm>} />
-        <Route path="rbac" element={<RequirePerm perm="rbac.manage"><RBACPage /></RequirePerm>} />
+        <Route path="rbac" element={<Navigate to="/settings?tab=roles" replace />} />
+        <Route path="doc-templates" element={<Navigate to="/settings?tab=templates" replace />} />
         <Route path="audit" element={<RequirePerm perm="audit.view"><AuditPage /></RequirePerm>} />
         <Route path="settings" element={<RequirePerm perm="settings.manage"><SettingsPage /></RequirePerm>} />
         <Route path="passwords" element={<RequireAuth><PasswordsPage /></RequireAuth>} />

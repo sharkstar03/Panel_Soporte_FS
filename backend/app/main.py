@@ -7,7 +7,7 @@ from app.config import settings
 from app.db import init_db, engine
 from app.migrations import run_migrations
 from app.models import SessionEventType, User, UserRole
-from app.routers import admin, approve, assets, attachments, auth, branches, documents, kb, links, otp, passwords, rbac, security_keys, sessions, users, audit
+from app.routers import admin, approve, assets, attachments, auth, branches, documents, document_templates, kb, links, otp, passwords, rbac, security_keys, sessions, users, audit
 from app.routers import settings as settings_router
 from app.s3 import ensure_bucket
 from app.security import hash_password
@@ -36,6 +36,7 @@ app.include_router(passwords.router)
 app.include_router(otp.router)
 app.include_router(security_keys.router)
 app.include_router(documents.router)
+app.include_router(document_templates.router)
 app.include_router(approve.router)
 app.include_router(admin.router)
 app.include_router(rbac.router)

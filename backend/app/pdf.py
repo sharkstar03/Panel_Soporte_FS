@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from fpdf import FPDF
+from fpdf import FPDF, HTMLMixin
 
 TYPE_LABELS = {
     "entrega_equipo": "Acta de Entrega de Equipo",
@@ -59,6 +59,10 @@ class _PDF(FPDF):
         self.set_font("Helvetica", "I", 7)
         self.set_text_color(148, 163, 184)
         self.cell(0, 8, f"Pag. {self.page_no()}  -  Generado por Panel de Soporte {self.company_name}", align="C")
+
+
+class _HTMLPDF(_PDF, HTMLMixin):
+    pass
 
 
 def _section_header(pdf: _PDF, text: str):
@@ -267,6 +271,17 @@ def generate_pdf_bytes(document, company_name: str = "QUANTIUM CREW") -> bytes:
         pdf.set_font("Helvetica", "I", 7)
         pdf.cell(0, 5, "Este documento fue rechazado y no tiene validez para tramites posteriores.", align="L")
 
+    return bytes(pdf.output())
+
+
+def generate_html_pdf_bytes(html_content: str, company_name: str = "QUANTIUM CREW") -> bytes:
+    pdf = _HTMLPDF()
+    pdf.company_name = company_name
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.set_margins(10, 10, 10)
+    pdf.set_font("Helvetica", size=10)
+    pdf.write_html(html_content)
     return bytes(pdf.output())
 
 

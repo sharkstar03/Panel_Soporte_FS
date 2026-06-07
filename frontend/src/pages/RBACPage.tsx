@@ -99,7 +99,7 @@ function RoleForm({ allPermissions, initial, onSave, loading }: {
   )
 }
 
-export function RBACPage() {
+export function RBACPage({ embedded = false }: { embedded?: boolean }) {
   const qc = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState<Role | null>(null)
@@ -143,13 +143,24 @@ export function RBACPage() {
   const roles = rolesQ.data as Role[] || []
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <PageHeader
-        title="Roles y permisos"
-        subtitle="Controla accesos a menús y acciones"
-        icon={<ShieldAlert size={16} />}
-        action={<Button size="sm" onClick={() => setShowCreate(true)}><Plus size={14} />Nuevo rol</Button>}
-      />
+    <div className={embedded ? 'space-y-6' : 'animate-fade-in space-y-6'}>
+      {!embedded && (
+        <PageHeader
+          title="Roles y permisos"
+          subtitle="Controla accesos a menús y acciones"
+          icon={<ShieldAlert size={16} />}
+          action={<Button size="sm" onClick={() => setShowCreate(true)}><Plus size={14} />Nuevo rol</Button>}
+        />
+      )}
+      {embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-display font-semibold text-text-primary">Roles y permisos</p>
+            <p className="text-xs text-text-muted">Controla accesos a menús y acciones</p>
+          </div>
+          <Button size="sm" onClick={() => setShowCreate(true)}><Plus size={14} />Nuevo rol</Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {roles.map((r) => (
@@ -204,4 +215,3 @@ export function RBACPage() {
     </div>
   )
 }
-
