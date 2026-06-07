@@ -38,6 +38,20 @@ class UserCreateIn(BaseModel):
     role: UserRole = UserRole.tecnico
 
 
+class UserUpdateIn(BaseModel):
+    role: Optional[UserRole] = None
+    active: Optional[bool] = None
+
+
+class AdminSetPasswordIn(BaseModel):
+    new_password: str
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class UserSmtpOut(BaseModel):
     user_id: int
     smtp_host: str
