@@ -18,6 +18,10 @@ dist/
 # Almacenamiento local de evidencias
 backend/storage/
 
+# Base de datos SQLite de desarrollo local
+*.db
+*.sqlite3
+
 # Sistema
 .DS_Store
 *.log
