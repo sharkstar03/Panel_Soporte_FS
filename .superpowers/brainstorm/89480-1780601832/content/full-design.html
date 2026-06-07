@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diseño — Módulo de Documentos</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #080f1a; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; padding: 24px; }
+
+  h1 { font-size: 22px; color: #67e8f9; margin-bottom: 4px; }
+  .subtitle { color: #64748b; font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 15px; color: #67e8f9; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+  h3 { font-size: 13px; color: #94a3b8; margin-bottom: 8px; font-weight: 500; }
+
+  .section { margin-bottom: 36px; }
+
+  /* Screen mockup container */
+  .screen { background: #0d1724; border: 1px solid #1e3a4a; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+  .screen-bar { background: #091320; padding: 8px 14px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #1e3a4a; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-r { background: #ef4444; }
+  .dot-y { background: #f59e0b; }
+  .dot-g { background: #10b981; }
+  .screen-title { color: #475569; font-size: 11px; margin-left: 6px; }
+  .screen-body { padding: 16px; }
+
+  /* Sidebar + content layout */
+  .app-layout { display: flex; gap: 0; min-height: 320px; }
+  .sidebar { width: 160px; background: #06101a; border-right: 1px solid #1e3a4a; padding: 12px 0; flex-shrink: 0; }
+  .sidebar-logo { padding: 8px 14px 16px; color: #67e8f9; font-weight: 700; font-size: 13px; border-bottom: 1px solid #1e3a4a; margin-bottom: 8px; }
+  .nav-item { padding: 7px 14px; font-size: 11px; color: #64748b; display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .nav-item.active { color: #67e8f9; background: #0d2235; border-left: 2px solid #67e8f9; }
+  .nav-item:hover { color: #94a3b8; }
+  .main { flex: 1; padding: 16px; }
+
+  /* Page header */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .page-title { font-size: 16px; font-weight: 600; color: #e2e8f0; }
+  .btn { padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: #0891b2; color: white; }
+  .btn-success { background: #059669; color: white; }
+  .btn-danger { background: #dc2626; color: white; }
+  .btn-outline { background: transparent; color: #67e8f9; border: 1px solid #0891b2; }
+
+  /* Table */
+  .table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .table th { text-align: left; padding: 6px 10px; color: #475569; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #1e3a4a; }
+  .table td { padding: 8px 10px; border-bottom: 1px solid #0d2235; color: #94a3b8; }
+  .table tr:last-child td { border-bottom: none; }
+  .table tr:hover td { background: #0d2235; }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+  .badge-pending { background: #1a3a00; color: #86efac; border: 1px solid #16a34a; }
+  .badge-approved { background: #0d4f3c; color: #6ee7b7; border: 1px solid #10b981; }
+  .badge-rejected { background: #450a0a; color: #fca5a5; border: 1px solid #dc2626; }
+  .badge-draft { background: #1a2a3a; color: #7dd3fc; border: 1px solid #0369a1; }
+
+  /* Template cards */
+  .template-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .template-card { background: #0d2235; border: 1px solid #1e3a4a; border-radius: 8px; padding: 14px; cursor: pointer; transition: border-color 0.2s; }
+  .template-card:hover { border-color: #0891b2; }
+  .template-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .template-card .name { font-size: 12px; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
+  .template-card .desc { font-size: 10px; color: #64748b; }
+
+  /* Form fields */
+  .form-group { margin-bottom: 10px; }
+  .form-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; display: block; }
+  .form-input { width: 100%; background: #0a1929; border: 1px solid #1e3a4a; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #e2e8f0; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Checklist item */
+  .checklist-item { background: #0d2235; border: 1px solid #1e3a4a; border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; font-size: 11px; }
+  .check-done { width: 16px; height: 16px; background: #059669; border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 9px; }
+  .check-empty { width: 16px; height: 16px; background: #1e3a4a; border-radius: 3px; flex-shrink: 0; }
+  .evidence-btn { margin-left: auto; background: #1e3a4a; border: none; color: #67e8f9; padding: 3px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+  .evidence-thumb { width: 28px; height: 28px; background: #0891b2; border-radius: 4px; margin-left: auto; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+
+  /* Approval page */
+  .approval-card { max-width: 560px; margin: 0 auto; background: #0d1724; border: 1px solid #1e3a4a; border-radius: 12px; overflow: hidden; }
+  .approval-header { background: #091320; padding: 16px 20px; border-bottom: 1px solid #1e3a4a; display: flex; align-items: center; gap: 10px; }
+  .approval-logo { color: #67e8f9; font-weight: 700; font-size: 14px; }
+  .approval-body { padding: 20px; }
+  .doc-field { margin-bottom: 10px; }
+  .doc-field label { font-size: 10px; color: #475569; text-transform: uppercase; display: block; margin-bottom: 2px; }
+  .doc-field span { font-size: 12px; color: #e2e8f0; }
+  .approval-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .approval-actions .btn { flex: 1; padding: 10px; font-size: 12px; text-align: center; }
+  .reject-area { margin-top: 12px; display: none; }
+  .reject-area textarea { width: 100%; background: #0a1929; border: 1px solid #dc2626; border-radius: 6px; padding: 8px; font-size: 11px; color: #e2e8f0; height: 60px; resize: none; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .flow-step { text-align: center; padding: 10px 12px; }
+  .flow-box { background: #0d2235; border: 1px solid #1e3a4a; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #e2e8f0; min-width: 90px; }
+  .flow-box.highlight { border-color: #0891b2; background: #0a2535; }
+  .flow-box .icon { font-size: 18px; margin-bottom: 4px; }
+  .flow-arrow { color: #0891b2; font-size: 18px; padding: 0 4px; }
+
+  /* Email preview */
+  .email-preview { background: #060d18; border: 1px solid #1e3a4a; border-radius: 8px; padding: 14px; font-size: 11px; }
+  .email-meta { color: #475569; margin-bottom: 8px; font-size: 10px; }
+  .email-subject { color: #e2e8f0; font-weight: 600; margin-bottom: 8px; }
+  .email-body { color: #94a3b8; line-height: 1.6; }
+  .email-cta { margin: 12px 0; text-align: center; }
+  .email-cta span { background: #0891b2; color: white; padding: 8px 20px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
+
+  /* Stamp */
+  .stamp { display: inline-block; border: 3px solid #10b981; border-radius: 8px; padding: 8px 16px; color: #10b981; font-weight: 700; font-size: 12px; transform: rotate(-3deg); opacity: 0.9; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .tag { display: inline-block; background: #0d2235; border: 1px solid #1e3a4a; padding: 2px 8px; border-radius: 4px; font-size: 10px; color: #64748b; margin: 2px; }
+  .tag-cyan { border-color: #0891b2; color: #67e8f9; background: #0a2535; }
+  .tag-green { border-color: #059669; color: #6ee7b7; background: #0a2a1a; }
+</style>
+</head>
+<body>
+
+<h1>Módulo de Documentos — Diseño Completo</h1>
+<p class="subtitle">Panel de Soporte · QUANTIUM CREW · Junio 2026</p>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 1: FLUJO GENERAL -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>1 · Flujo completo del sistema</h2>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">Ciclo de vida de un documento</span></div>
+    <div class="screen-body">
+      <div class="flow" style="justify-content:center;">
+        <div class="flow-step">
+          <div class="flow-box highlight"><div class="icon">📝</div>Técnico crea doc</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box highlight"><div class="icon">📧</div>Envío por SMTP</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box highlight"><div class="icon">👁️</div>Aprobador ve doc</div>
+          <div style="font-size:10px;color:#475569;margin-top:4px;">Sin login</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box" style="border-color:#10b981;background:#0a2a1a;"><div class="icon">✅</div>Aprobado</div>
+        </div>
+        <div style="padding:0 4px;color:#475569;font-size:12px;">ó</div>
+        <div class="flow-step">
+          <div class="flow-box" style="border-color:#dc2626;background:#1a0a0a;"><div class="icon">❌</div>Rechazado + motivo</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:11px;color:#475569;">El estado se actualiza en tiempo real en la tabla del Panel</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 2: TABLA DE DOCUMENTOS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>2 · Página principal — Lista de documentos</h2>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">Panel de Soporte — /documents</span></div>
+    <div class="screen-body">
+      <div class="app-layout">
+        <div class="sidebar">
+          <div class="sidebar-logo">⚡ QUANTIUM</div>
+          <div class="nav-item">🏠 Dashboard</div>
+          <div class="nav-item">🖥️ Activos</div>
+          <div class="nav-item">🔗 Sesiones</div>
+          <div class="nav-item active">📄 Documentos</div>
+          <div class="nav-item">🔐 Bóveda</div>
+          <div class="nav-item">📚 KB</div>
+          <div class="nav-item">⚙️ Config</div>
+        </div>
+        <div class="main">
+          <div class="page-header">
+            <span class="page-title">Documentos</span>
+            <button class="btn btn-primary">+ Nuevo documento</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <span class="tag tag-cyan">Todos (12)</span>
+            <span class="tag">Pendientes (4)</span>
+            <span class="tag">Aprobados (7)</span>
+            <span class="tag">Rechazados (1)</span>
+          </div>
+          <table class="table">
+            <thead>
+              <tr><th>Tipo</th><th>Documento</th><th>Creado por</th><th>Aprobador</th><th>Fecha</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="tag">📦 Entrega</span></td>
+                <td style="color:#e2e8f0;">Entrega Laptop HP · Luis McTaggar</td>
+                <td>C. Méndez</td>
+                <td>gerente@empresa.com</td>
+                <td>04/06/26</td>
+                <td><span class="badge badge-pending">⏳ Pendiente</span></td>
+                <td><button class="btn btn-outline" style="padding:3px 8px;font-size:10px;">Ver</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag">✅ Checklist</span></td>
+                <td style="color:#e2e8f0;">Checklist Diario · 03/06/2026</td>
+                <td>J. García</td>
+                <td>supervisor@empresa.com</td>
+                <td>03/06/26</td>
+                <td><span class="badge badge-approved">✅ Aprobado</span></td>
+                <td><button class="btn btn-outline" style="padding:3px 8px;font-size:10px;">Ver</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag">💰 Pago</span></td>
+                <td style="color:#e2e8f0;">Pago Proveedor · Tecnosol S.A.</td>
+                <td>Admin</td>
+                <td>cfo@empresa.com</td>
+                <td>02/06/26</td>
+                <td><span class="badge badge-rejected">❌ Rechazado</span></td>
+                <td><button class="btn btn-outline" style="padding:3px 8px;font-size:10px;">Ver</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag">🔍 Control</span></td>
+                <td style="color:#e2e8f0;">Inspección PC-04 · Sucursal Norte</td>
+                <td>C. Méndez</td>
+                <td>gerente@empresa.com</td>
+                <td>01/06/26</td>
+                <td><span class="badge badge-approved">✅ Aprobado</span></td>
+                <td><button class="btn btn-outline" style="padding:3px 8px;font-size:10px;">Ver</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 3: CREAR DOCUMENTO -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>3 · Crear nuevo documento — Elegir plantilla</h2>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">Nueva solicitud</span></div>
+    <div class="screen-body">
+      <div class="template-grid">
+        <div class="template-card" style="border-color:#0891b2;">
+          <div class="icon">📦</div>
+          <div class="name">Entrega de Equipo</div>
+          <div class="desc">Registro formal de entrega a empleado o área</div>
+        </div>
+        <div class="template-card">
+          <div class="icon">🔍</div>
+          <div class="name">Control / Inspección</div>
+          <div class="desc">Revisión periódica del estado de equipos</div>
+        </div>
+        <div class="template-card">
+          <div class="icon">💰</div>
+          <div class="name">Pago a Proveedor</div>
+          <div class="desc">Solicitud de pago con T&amp;C y montos</div>
+        </div>
+        <div class="template-card">
+          <div class="icon">✅</div>
+          <div class="name">Checklist Diario</div>
+          <div class="desc">Tareas del día con evidencia fotográfica</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 4: FORMULARIOS (2 ejemplos) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>4 · Formularios — Vista previa de 2 plantillas</h2>
+  <div class="split">
+    <!-- Entrega de equipo -->
+    <div class="screen">
+      <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">📦 Entrega de Equipo</span></div>
+      <div class="screen-body" style="font-size:11px;">
+        <div class="form-row">
+          <div class="form-group"><span class="form-label">Equipo</span><div class="form-input">Laptop HP EliteBook</div></div>
+          <div class="form-group"><span class="form-label">N° Serie</span><div class="form-input">HP-2024-00421</div></div>
+        </div>
+        <div class="form-group"><span class="form-label">Entregado a</span><div class="form-input">Luis McTaggar</div></div>
+        <div class="form-row">
+          <div class="form-group"><span class="form-label">Sucursal</span><div class="form-input">Sede Central</div></div>
+          <div class="form-group"><span class="form-label">Fecha</span><div class="form-input">04/06/2026</div></div>
+        </div>
+        <div class="form-group"><span class="form-label">Condición</span><div class="form-input">Buen estado</div></div>
+        <div class="form-group"><span class="form-label">Observaciones</span><div class="form-input" style="height:36px;">Incluye cargador y funda</div></div>
+        <div class="form-group"><span class="form-label">Correo del aprobador</span><div class="form-input">gerente@empresa.com</div></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-outline" style="flex:1;">Guardar borrador</button>
+          <button class="btn btn-primary" style="flex:1;">Enviar para aprobar →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checklist diario -->
+    <div class="screen">
+      <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">✅ Checklist Diario con Evidencia</span></div>
+      <div class="screen-body" style="font-size:11px;">
+        <div class="form-row">
+          <div class="form-group"><span class="form-label">Técnico</span><div class="form-input">Carlos Méndez</div></div>
+          <div class="form-group"><span class="form-label">Fecha</span><div class="form-input">04/06/2026</div></div>
+        </div>
+        <div style="margin:10px 0 6px;font-size:10px;color:#64748b;text-transform:uppercase;">Tareas del día</div>
+        <div class="checklist-item">
+          <div class="check-done">✓</div>
+          <span>Backup servidores completado</span>
+          <div class="evidence-thumb">🖼️</div>
+        </div>
+        <div class="checklist-item">
+          <div class="check-done">✓</div>
+          <span>Monitoreo de red revisado</span>
+          <div class="evidence-thumb">🖼️</div>
+        </div>
+        <div class="checklist-item">
+          <div class="check-empty"></div>
+          <span style="color:#475569;">Actualización de sistemas</span>
+          <button class="evidence-btn">+ Evidencia</button>
+        </div>
+        <div class="checklist-item">
+          <div class="check-empty"></div>
+          <span style="color:#475569;">Revisión UPS sala de servidores</span>
+          <button class="evidence-btn">+ Evidencia</button>
+        </div>
+        <div class="form-group" style="margin-top:10px;"><span class="form-label">Correo del supervisor</span><div class="form-input">supervisor@empresa.com</div></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:8px;">Enviar checklist del día →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 5: CORREO + PÁGINA DE APROBACIÓN PÚBLICA -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>5 · Lo que ve el aprobador — Correo + Página pública</h2>
+  <div class="split">
+    <div>
+      <h3>Correo recibido</h3>
+      <div class="email-preview">
+        <div class="email-meta">De: soporte@empresa.com &nbsp;·&nbsp; Para: gerente@empresa.com</div>
+        <div class="email-subject">📄 Solicitud de aprobación — Entrega de Equipo</div>
+        <div class="email-body">
+          El técnico <strong style="color:#67e8f9">Carlos Méndez</strong> ha generado una <strong>Entrega de Equipo</strong> que requiere su aprobación:<br><br>
+          <strong>Equipo:</strong> Laptop HP EliteBook<br>
+          <strong>Para:</strong> Luis McTaggar · Sede Central<br>
+          <strong>Fecha:</strong> 04/06/2026<br><br>
+          Por favor revise el documento completo y apruebe o rechace:
+        </div>
+        <div class="email-cta">
+          <span>Ver documento y responder →</span>
+        </div>
+        <div style="color:#475569;font-size:10px;text-align:center;">Este enlace expira en 7 días · QUANTIUM CREW</div>
+      </div>
+    </div>
+    <div>
+      <h3>Página de aprobación (sin login)</h3>
+      <div class="approval-card">
+        <div class="approval-header">
+          <div class="approval-logo">⚡ QUANTIUM</div>
+          <div style="font-size:11px;color:#475569;margin-left:auto;">Solicitud de aprobación</div>
+        </div>
+        <div class="approval-body">
+          <div style="background:#0a2535;border:1px solid #0891b2;border-radius:6px;padding:10px;margin-bottom:12px;font-size:11px;">
+            <strong style="color:#67e8f9;">📦 Entrega de Equipo</strong>
+            <div style="color:#475569;font-size:10px;margin-top:2px;">Creado por Carlos Méndez · 04/06/2026</div>
+          </div>
+          <div class="doc-field"><label>Equipo</label><span>Laptop HP EliteBook (N° HP-2024-00421)</span></div>
+          <div class="doc-field"><label>Entregado a</label><span>Luis McTaggar · Sede Central</span></div>
+          <div class="doc-field"><label>Condición</label><span>Buen estado · Incluye cargador y funda</span></div>
+          <div class="approval-actions">
+            <button class="btn btn-success" style="flex:1;">✅ Aprobar</button>
+            <button class="btn btn-danger" style="flex:1;">❌ Rechazar</button>
+          </div>
+          <div class="reject-area" style="display:block;margin-top:10px;">
+            <div style="font-size:10px;color:#dc2626;margin-bottom:4px;">Motivo del rechazo (requerido)</div>
+            <textarea class="form-input" placeholder="Ej: Falta número de serie verificado..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 6: PDF -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>6 · PDF generado</h2>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">Documento PDF — Entrega de Equipo</span></div>
+    <div class="screen-body">
+      <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:8px;padding:20px;color:#1e293b;font-size:11px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0891b2;padding-bottom:10px;margin-bottom:14px;">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#0891b2;">QUANTIUM CREW</div>
+            <div style="color:#64748b;font-size:10px;">Soporte Técnico</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:600;">ACTA DE ENTREGA DE EQUIPO</div>
+            <div style="color:#64748b;font-size:10px;">DOC-2026-0042 · 04/06/2026</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div><span style="color:#64748b;font-size:9px;text-transform:uppercase;">Equipo</span><div style="font-weight:600;">Laptop HP EliteBook</div></div>
+          <div><span style="color:#64748b;font-size:9px;text-transform:uppercase;">N° Serie</span><div style="font-weight:600;">HP-2024-00421</div></div>
+          <div><span style="color:#64748b;font-size:9px;text-transform:uppercase;">Entregado a</span><div style="font-weight:600;">Luis McTaggar</div></div>
+          <div><span style="color:#64748b;font-size:9px;text-transform:uppercase;">Sucursal</span><div style="font-weight:600;">Sede Central</div></div>
+          <div><span style="color:#64748b;font-size:9px;text-transform:uppercase;">Condición</span><div>Buen estado</div></div>
+          <div><span style="color:#64748b;font-size:9px;text-transform:uppercase;">Fecha</span><div>04/06/2026</div></div>
+        </div>
+        <div style="background:#f8fafc;border-radius:4px;padding:8px;margin-bottom:14px;font-size:10px;color:#475569;">
+          <strong>Observaciones:</strong> Incluye cargador y funda protectora.
+        </div>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;border-top:1px solid #e2e8f0;padding-top:12px;">
+          <div style="font-size:10px;color:#475569;">
+            <div>Aprobado por: gerente@empresa.com</div>
+            <div>Fecha de aprobación: 04/06/2026 14:35</div>
+            <div>Token: a3f8c2d1e9b7...</div>
+          </div>
+          <div class="stamp">APROBADO</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- RESUMEN TÉCNICO -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>7 · Resumen técnico</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:11px;">
+    <div style="background:#0d2235;border:1px solid #1e3a4a;border-radius:8px;padding:14px;">
+      <div style="color:#67e8f9;font-weight:600;margin-bottom:8px;">🗄️ Backend</div>
+      <div style="color:#94a3b8;line-height:1.8;">FastAPI (existente)<br>Modelo Document + Evidence<br>Token UUID con expiración<br>WeasyPrint → PDF<br>SMTP con config existente</div>
+    </div>
+    <div style="background:#0d2235;border:1px solid #1e3a4a;border-radius:8px;padding:14px;">
+      <div style="color:#67e8f9;font-weight:600;margin-bottom:8px;">⚛️ Frontend</div>
+      <div style="color:#94a3b8;line-height:1.8;">React (existente)<br>/documents — lista + filtros<br>/documents/new — wizard<br>/approve/:token — página pública<br>Visor PDF in-app</div>
+    </div>
+    <div style="background:#0d2235;border:1px solid #1e3a4a;border-radius:8px;padding:14px;">
+      <div style="color:#67e8f9;font-weight:600;margin-bottom:8px;">📦 Plantillas MVP</div>
+      <div style="color:#94a3b8;line-height:1.8;">📦 Entrega de Equipo<br>🔍 Control / Inspección<br>💰 Pago a Proveedor<br>✅ Checklist Diario + fotos</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

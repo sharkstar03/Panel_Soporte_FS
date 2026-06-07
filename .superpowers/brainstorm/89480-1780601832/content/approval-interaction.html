@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interacción de Aprobación — Corregida</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #080f1a; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; padding: 24px; }
+  h1 { font-size: 20px; color: #67e8f9; margin-bottom: 4px; }
+  .subtitle { color: #64748b; font-size: 12px; margin-bottom: 28px; }
+  h2 { font-size: 12px; color: #67e8f9; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+
+  .screen { background: #0d1724; border: 1px solid #1e3a4a; border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+  .screen-bar { background: #091320; padding: 7px 14px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #1e3a4a; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-r{background:#ef4444;} .dot-y{background:#f59e0b;} .dot-g{background:#10b981;}
+  .screen-title { color: #475569; font-size: 11px; margin-left: 6px; }
+  .screen-body { padding: 20px; display: flex; justify-content: center; }
+
+  .approval-card { width: 100%; max-width: 460px; background: #060e1a; border: 1px solid #1e3a4a; border-radius: 12px; overflow: hidden; }
+  .card-header { background: #091320; padding: 12px 18px; border-bottom: 1px solid #1e3a4a; display: flex; align-items: center; justify-content: space-between; }
+  .logo { color: #67e8f9; font-weight: 700; font-size: 13px; }
+  .doc-badge { font-size: 10px; color: #475569; background: #0d2235; padding: 3px 8px; border-radius: 4px; border: 1px solid #1e3a4a; }
+  .card-body { padding: 18px; }
+
+  .doc-summary { background: #0a1929; border: 1px solid #1e3a4a; border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+  .doc-title { font-size: 12px; font-weight: 600; color: #e2e8f0; margin-bottom: 8px; }
+  .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .doc-field label { font-size: 9px; color: #475569; text-transform: uppercase; display: block; margin-bottom: 1px; }
+  .doc-field span { font-size: 11px; color: #94a3b8; }
+
+  .divider { border: none; border-top: 1px solid #1e3a4a; margin: 14px 0; }
+
+  .terms-block { background: #0a1929; border: 1px solid #1e3a4a; border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+  .terms-row { display: flex; align-items: flex-start; gap: 10px; }
+  .checkbox { width: 17px; height: 17px; border: 2px solid #0891b2; border-radius: 4px; flex-shrink: 0; background: #0891b2; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 700; margin-top: 1px; }
+  .terms-text { font-size: 11px; color: #94a3b8; line-height: 1.6; }
+  .terms-link { color: #67e8f9; text-decoration: underline; cursor: pointer; }
+  .terms-expanded { background: #0d2235; border: 1px solid #0891b2; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 10px; color: #94a3b8; line-height: 1.7; max-height: 110px; overflow-y: auto; }
+  .terms-expanded h4 { color: #67e8f9; font-size: 11px; margin-bottom: 6px; }
+  .terms-expanded p { margin-bottom: 5px; }
+
+  .action-row { display: flex; gap: 10px; }
+  .btn { padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; flex: 1; text-align: center; }
+  .btn-approve { background: #059669; color: white; }
+  .btn-reject { background: #dc2626; color: white; }
+  .btn-reject-confirm { background: #dc2626; color: white; width: 100%; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; margin-top: 10px; }
+  .btn-cancel { background: transparent; color: #64748b; border: 1px solid #1e3a4a; font-size: 11px; padding: 6px 12px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 6px; }
+
+  .reject-reason-box { margin-top: 14px; background: #1a0a0a; border: 1px solid #dc2626; border-radius: 8px; padding: 12px; }
+  .reject-reason-box label { font-size: 10px; color: #dc2626; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 8px; }
+  .reject-reason-box textarea { width: 100%; background: #0a0505; border: 1px solid #7f1d1d; border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #e2e8f0; height: 70px; resize: none; font-family: inherit; }
+  .reject-reason-box textarea::placeholder { color: #475569; }
+
+  .expiry-note { font-size: 10px; color: #475569; text-align: center; margin-top: 12px; }
+
+  .section { margin-bottom: 32px; }
+  .step-label { display: inline-block; background: #0d2235; border: 1px solid #1e3a4a; color: #67e8f9; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .arrow-down { text-align: center; font-size: 22px; color: #1e3a4a; margin: 6px 0; }
+  .change-highlight { border-color: #dc2626 !important; }
+  .new-tag { display: inline-block; background: #dc2626; color: white; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<h1>Interacción de Aprobación — Corregida</h1>
+<p class="subtitle">El campo de motivo solo aparece al hacer clic en "Rechazar"</p>
+
+<!-- ═══ PASO 1: Estado inicial ═══ -->
+<div class="section">
+  <div class="step-label">Paso 1 — El aprobador abre el enlace</div>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">Solo se ven los dos botones · Sin campo de motivo</span></div>
+    <div class="screen-body">
+      <div class="approval-card">
+        <div class="card-header">
+          <span class="logo">⚡ QUANTIUM CREW</span>
+          <span class="doc-badge">📦 Entrega de Equipo</span>
+        </div>
+        <div class="card-body">
+          <div class="doc-summary">
+            <div class="doc-title">📋 Acta de Entrega — Laptop HP EliteBook</div>
+            <div class="doc-grid">
+              <div class="doc-field"><label>Equipo</label><span>Laptop HP EliteBook</span></div>
+              <div class="doc-field"><label>N° Serie</label><span>HP-2024-00421</span></div>
+              <div class="doc-field"><label>Entregado a</label><span>Luis McTaggar</span></div>
+              <div class="doc-field"><label>Sucursal</label><span>Sede Central</span></div>
+            </div>
+          </div>
+          <hr class="divider">
+          <div class="terms-block">
+            <div class="terms-row">
+              <div class="checkbox">✓</div>
+              <div class="terms-text">He leído y acepto los <span class="terms-link">Términos y Condiciones</span> de este documento y autorizo esta entrega de forma digital.</div>
+            </div>
+            <div class="terms-expanded">
+              <h4>Términos y Condiciones — Acta de Entrega</h4>
+              <p><strong>1. Responsabilidad:</strong> El receptor se hace responsable de la custodia y uso adecuado del equipo.</p>
+              <p><strong>2. Uso corporativo:</strong> Exclusivamente para actividades laborales autorizadas.</p>
+              <p><strong>3. Devolución:</strong> Al concluir la relación laboral, el equipo debe ser devuelto en el mismo estado.</p>
+              <p><strong>4. Validez:</strong> La aprobación digital tiene la misma validez que una firma física.</p>
+            </div>
+          </div>
+          <!-- SOLO LOS DOS BOTONES — sin campo de rechazo -->
+          <div class="action-row">
+            <button class="btn btn-approve">✅ Aprobar</button>
+            <button class="btn btn-reject">❌ Rechazar</button>
+          </div>
+          <div class="expiry-note">⏳ Este enlace es válido por 7 días o hasta que sea respondido</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓ clic en "Rechazar"</div>
+
+<!-- ═══ PASO 2: Después de hacer clic en Rechazar ═══ -->
+<div class="section" style="margin-top:10px;">
+  <div class="step-label">Paso 2 — Clic en "Rechazar" → aparece el campo</div>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">El campo de motivo aparece debajo de los botones <span class="new-tag">NUEVO</span></span></div>
+    <div class="screen-body">
+      <div class="approval-card">
+        <div class="card-header">
+          <span class="logo">⚡ QUANTIUM CREW</span>
+          <span class="doc-badge">📦 Entrega de Equipo</span>
+        </div>
+        <div class="card-body">
+          <div class="doc-summary">
+            <div class="doc-title">📋 Acta de Entrega — Laptop HP EliteBook</div>
+            <div class="doc-grid">
+              <div class="doc-field"><label>Equipo</label><span>Laptop HP EliteBook</span></div>
+              <div class="doc-field"><label>N° Serie</label><span>HP-2024-00421</span></div>
+              <div class="doc-field"><label>Entregado a</label><span>Luis McTaggar</span></div>
+              <div class="doc-field"><label>Sucursal</label><span>Sede Central</span></div>
+            </div>
+          </div>
+          <hr class="divider">
+          <div class="terms-block">
+            <div class="terms-row">
+              <div class="checkbox">✓</div>
+              <div class="terms-text">He leído y acepto los <span class="terms-link">Términos y Condiciones</span> de este documento y autorizo esta entrega de forma digital.</div>
+            </div>
+          </div>
+          <div class="action-row">
+            <button class="btn btn-approve">✅ Aprobar</button>
+            <button class="btn btn-reject" style="opacity:0.7;">❌ Rechazar</button>
+          </div>
+
+          <!-- APARECE al hacer clic en Rechazar -->
+          <div class="reject-reason-box change-highlight">
+            <label>⚠ Motivo del rechazo (requerido para continuar)</label>
+            <textarea placeholder="Ej: El número de serie no coincide con el inventario. Por favor verificar antes de proceder."></textarea>
+            <button class="btn-reject-confirm">Confirmar rechazo →</button>
+            <button class="btn-cancel">Cancelar — volver a los botones</button>
+          </div>
+
+          <div class="expiry-note">⏳ Este enlace es válido por 7 días o hasta que sea respondido</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

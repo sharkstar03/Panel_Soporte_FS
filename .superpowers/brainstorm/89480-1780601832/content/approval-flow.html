@@ -1,0 +1,73 @@
+<h2>¿Cómo aprueba el supervisor?</h2>
+<p class="subtitle">Esto define si el aprobador necesita cuenta en el Panel o si puede aprobar desde el correo sin registrarse.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Enlace público — Sin login (Recomendado)</h3>
+      <p>El aprobador recibe un correo con un enlace único y seguro. Al hacer clic, ve el documento completo y puede <strong>Aprobar</strong> o <strong>Rechazar</strong> sin necesitar cuenta en el Panel.</p>
+      <br>
+      <div class="mockup" style="font-size:12px;">
+        <div class="mockup-header">📧 Correo recibido por el supervisor</div>
+        <div class="mockup-body" style="background:#0d1f2d;padding:12px;border-radius:6px;">
+          <div style="border:1px solid #1e3a4a;border-radius:6px;padding:12px;background:#0a1929;">
+            <div style="color:#94a3b8;font-size:10px;margin-bottom:8px;">De: soporte@empresa.com · Para: gerente@empresa.com</div>
+            <div style="color:#e2e8f0;font-weight:600;margin-bottom:6px;">Solicitud de aprobación — Entrega de Equipo</div>
+            <div style="color:#94a3b8;font-size:11px;margin-bottom:10px;">
+              El técnico <strong style="color:#67e8f9">Carlos Méndez</strong> ha creado una entrega de equipo para <strong style="color:#67e8f9">Luis McTaggar</strong>.<br>Se requiere su aprobación para continuar.
+            </div>
+            <div style="text-align:center;margin:12px 0;">
+              <span style="background:#0891b2;color:white;padding:8px 20px;border-radius:6px;font-size:12px;font-weight:600;">Ver documento y aprobar →</span>
+            </div>
+            <div style="color:#475569;font-size:10px;text-align:center;">Este enlace expira en 7 días</div>
+          </div>
+          <div style="margin-top:10px;color:#64748b;font-size:10px;text-align:center;">El aprobador hace clic y ve el documento sin login</div>
+        </div>
+      </div>
+      <br>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ventajas</h4><ul><li>El supervisor no necesita cuenta</li><li>Aprobación más rápida (1 clic)</li><li>Funciona para externos (proveedores, clientes)</li><li>Enlace con token seguro y expiración</li></ul></div>
+        <div class="cons"><h4>Desventajas</h4><ul><li>Si el correo es interceptado, alguien podría aprobar</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Login requerido — Solo usuarios del Panel</h3>
+      <p>El aprobador recibe un correo, hace clic en el enlace, y el Panel le pide iniciar sesión. Solo supervisores/admins con cuenta pueden aprobar.</p>
+      <br>
+      <div class="mockup" style="font-size:12px;">
+        <div class="mockup-header">🔐 Flujo del aprobador</div>
+        <div class="mockup-body" style="display:flex;align-items:center;gap:8px;justify-content:center;padding:12px;flex-wrap:wrap;">
+          <div style="background:#1e3a4a;border-radius:6px;padding:8px;text-align:center;font-size:11px;min-width:80px;">
+            <div style="font-size:18px;margin-bottom:4px;">📧</div>
+            <div>Recibe correo</div>
+          </div>
+          <div style="color:#67e8f9;font-size:16px;">→</div>
+          <div style="background:#1e3a4a;border-radius:6px;padding:8px;text-align:center;font-size:11px;min-width:80px;">
+            <div style="font-size:18px;margin-bottom:4px;">🔐</div>
+            <div>Inicia sesión</div>
+          </div>
+          <div style="color:#67e8f9;font-size:16px;">→</div>
+          <div style="background:#1e3a4a;border-radius:6px;padding:8px;text-align:center;font-size:11px;min-width:80px;">
+            <div style="font-size:18px;margin-bottom:4px;">📄</div>
+            <div>Ve doc</div>
+          </div>
+          <div style="color:#67e8f9;font-size:16px;">→</div>
+          <div style="background:#0d4f3c;border-radius:6px;padding:8px;text-align:center;font-size:11px;min-width:80px;">
+            <div style="font-size:18px;margin-bottom:4px;">✅</div>
+            <div>Aprueba</div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ventajas</h4><ul><li>Más seguro — solo usuarios autenticados</li><li>Queda registro de quién aprobó con certeza</li></ul></div>
+        <div class="cons"><h4>Desventajas</h4><ul><li>El aprobador necesita cuenta en el Panel</li><li>No funciona para externos (proveedores)</li><li>Más fricción para aprobar</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,79 @@
+<h2>¿Cómo quieres crear los formularios?</h2>
+<p class="subtitle">Esta decisión define toda la arquitectura del módulo. Elige el enfoque que mejor describa lo que necesitas.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Constructor Visual (Form Builder)</h3>
+      <p>Los administradores pueden crear cualquier formulario desde cero: arrastrar campos (texto, fecha, firma, checkbox, dropdown), nombrar el formulario como quieran y publicarlo. Como Google Forms pero dentro del Panel.</p>
+      <br>
+      <div class="mockup" style="font-size:12px; padding:10px;">
+        <div class="mockup-header">Editor de Formulario — "Entrega de Equipo"</div>
+        <div class="mockup-body" style="display:flex;gap:12px;">
+          <div style="width:140px;background:#0d1f2d;border-radius:6px;padding:8px;font-size:11px;">
+            <div style="color:#67e8f9;margin-bottom:6px;font-size:10px;text-transform:uppercase;">Campos</div>
+            <div style="background:#1e3a4a;border-radius:4px;padding:4px 6px;margin-bottom:4px;">📝 Texto corto</div>
+            <div style="background:#1e3a4a;border-radius:4px;padding:4px 6px;margin-bottom:4px;">📅 Fecha</div>
+            <div style="background:#1e3a4a;border-radius:4px;padding:4px 6px;margin-bottom:4px;">✅ Checkbox</div>
+            <div style="background:#1e3a4a;border-radius:4px;padding:4px 6px;margin-bottom:4px;">📋 Lista</div>
+            <div style="background:#1e3a4a;border-radius:4px;padding:4px 6px;margin-bottom:4px;">✍️ Firma</div>
+          </div>
+          <div style="flex:1;background:#0d1f2d;border-radius:6px;padding:8px;font-size:11px;">
+            <div style="color:#67e8f9;margin-bottom:8px;font-size:10px;text-transform:uppercase;">Vista previa</div>
+            <div style="background:#1a2e3b;border-radius:4px;padding:6px;margin-bottom:6px;">📋 Nombre del equipo: <span style="color:#94a3b8">___________</span></div>
+            <div style="background:#1a2e3b;border-radius:4px;padding:6px;margin-bottom:6px;">👤 Entregado a: <span style="color:#94a3b8">___________</span></div>
+            <div style="background:#1a2e3b;border-radius:4px;padding:6px;margin-bottom:6px;">📅 Fecha: <span style="color:#94a3b8">___________</span></div>
+            <div style="background:#1a2e3b;border-radius:4px;padding:6px;">✍️ Firma: <span style="color:#94a3b8">___________</span></div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ventajas</h4><ul><li>Máxima flexibilidad</li><li>Sin código para nuevos formularios</li><li>Cualquier equipo puede crear sus propias plantillas</li></ul></div>
+        <div class="cons"><h4>Desventajas</h4><ul><li>Más complejo de construir</li><li>Mayor tiempo de desarrollo</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Plantillas Predefinidas (Recomendado)</h3>
+      <p>Se construyen las plantillas que necesitas (Entrega de Equipo, Control, Pago de Proveedores, etc.) directamente en código, con todos los campos específicos. Para agregar una nueva plantilla, se hace con nosotros.</p>
+      <br>
+      <div class="mockup" style="font-size:12px; padding:10px;">
+        <div class="mockup-header">Nueva Solicitud — Elegir Plantilla</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+            <div style="background:#0d4f3c;border:1px solid #10b981;border-radius:6px;padding:10px;text-align:center;">
+              <div style="font-size:20px;margin-bottom:4px;">📦</div>
+              <div style="color:#10b981;font-weight:600;">Entrega de Equipo</div>
+              <div style="color:#94a3b8;font-size:10px;margin-top:2px;">Activo · Responsable · Firma</div>
+            </div>
+            <div style="background:#1a3a4a;border:1px solid #67e8f9;border-radius:6px;padding:10px;text-align:center;">
+              <div style="font-size:20px;margin-bottom:4px;">🔍</div>
+              <div style="color:#67e8f9;font-weight:600;">Control de Equipo</div>
+              <div style="color:#94a3b8;font-size:10px;margin-top:2px;">Inspección · Estado · Observaciones</div>
+            </div>
+            <div style="background:#3a1a4a;border:1px solid #a855f7;border-radius:6px;padding:10px;text-align:center;">
+              <div style="font-size:20px;margin-bottom:4px;">💰</div>
+              <div style="color:#a855f7;font-weight:600;">Pago de Proveedor</div>
+              <div style="color:#94a3b8;font-size:10px;margin-top:2px;">T&C · Montos · Firmas</div>
+            </div>
+            <div style="background:#3a2a1a;border:1px dashed #f59e0b;border-radius:6px;padding:10px;text-align:center;">
+              <div style="font-size:20px;margin-bottom:4px;">➕</div>
+              <div style="color:#f59e0b;font-weight:600;">Solicitar nueva</div>
+              <div style="color:#94a3b8;font-size:10px;margin-top:2px;">Contacta al equipo</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ventajas</h4><ul><li>Más rápido de construir y entregar</li><li>Formularios optimizados para cada caso</li><li>Validaciones específicas por tipo</li></ul></div>
+        <div class="cons"><h4>Desventajas</h4><ul><li>Requiere desarrollo para cada plantilla nueva</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

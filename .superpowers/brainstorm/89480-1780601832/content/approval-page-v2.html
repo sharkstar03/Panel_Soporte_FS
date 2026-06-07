@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Página de Aprobación — Diseño Actualizado</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #080f1a; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; padding: 24px; }
+  h1 { font-size: 20px; color: #67e8f9; margin-bottom: 4px; }
+  .subtitle { color: #64748b; font-size: 12px; margin-bottom: 28px; }
+  h2 { font-size: 13px; color: #67e8f9; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+
+  .screen { background: #0d1724; border: 1px solid #1e3a4a; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+  .screen-bar { background: #091320; padding: 8px 14px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #1e3a4a; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-r { background:#ef4444; } .dot-y { background:#f59e0b; } .dot-g { background:#10b981; }
+  .screen-title { color: #475569; font-size: 11px; margin-left: 6px; }
+  .screen-body { padding: 24px; display: flex; justify-content: center; }
+
+  /* Approval card */
+  .approval-card { width: 100%; max-width: 500px; background: #060e1a; border: 1px solid #1e3a4a; border-radius: 12px; overflow: hidden; }
+  .card-header { background: #091320; padding: 14px 20px; border-bottom: 1px solid #1e3a4a; display: flex; align-items: center; justify-content: space-between; }
+  .logo { color: #67e8f9; font-weight: 700; font-size: 14px; }
+  .doc-type { font-size: 10px; color: #475569; background: #0d2235; padding: 3px 8px; border-radius: 4px; border: 1px solid #1e3a4a; }
+  .card-body { padding: 20px; }
+
+  /* Doc summary */
+  .doc-summary { background: #0a1929; border: 1px solid #1e3a4a; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+  .doc-summary .doc-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .doc-field label { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 2px; }
+  .doc-field span { font-size: 11px; color: #94a3b8; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid #1e3a4a; margin: 16px 0; }
+
+  /* Terms checkbox */
+  .terms-block { background: #0a1929; border: 1px solid #1e3a4a; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+  .terms-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .checkbox { width: 18px; height: 18px; border: 2px solid #0891b2; border-radius: 4px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; background: #0d2a3a; transition: background 0.15s; }
+  .checkbox.checked { background: #0891b2; }
+  .checkbox.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+  .terms-text { font-size: 11px; color: #94a3b8; line-height: 1.6; }
+  .terms-link { color: #67e8f9; text-decoration: underline; cursor: pointer; }
+
+  /* Terms modal overlay */
+  .terms-modal { background: #0d2235; border: 1px solid #0891b2; border-radius: 8px; padding: 14px; margin-top: 10px; font-size: 10px; color: #94a3b8; line-height: 1.7; max-height: 120px; overflow-y: auto; display: none; }
+  .terms-modal.visible { display: block; }
+  .terms-modal h4 { color: #67e8f9; font-size: 11px; margin-bottom: 6px; }
+  .terms-modal p { margin-bottom: 6px; }
+
+  /* Buttons */
+  .btn { padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.15s; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-approve { background: #059669; color: white; flex: 1; }
+  .btn-reject { background: #dc2626; color: white; flex: 1; }
+  .btn-download { background: #0891b2; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+  .action-row { display: flex; gap: 10px; }
+
+  /* Reject textarea */
+  .reject-reason { margin-top: 12px; }
+  .reject-reason label { font-size: 10px; color: #dc2626; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 6px; }
+  .reject-reason textarea { width: 100%; background: #1a0a0a; border: 1px solid #dc2626; border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #e2e8f0; height: 64px; resize: none; font-family: inherit; }
+  .reject-reason textarea::placeholder { color: #475569; }
+
+  /* Expiry warning */
+  .expiry-note { font-size: 10px; color: #475569; text-align: center; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .expiry-note.urgent { color: #f59e0b; }
+
+  /* Success state */
+  .success-state { text-align: center; padding: 24px 20px; }
+  .success-icon { font-size: 48px; margin-bottom: 12px; }
+  .success-title { font-size: 16px; font-weight: 700; color: #10b981; margin-bottom: 6px; }
+  .success-meta { font-size: 11px; color: #475569; margin-bottom: 20px; line-height: 1.6; }
+  .download-card { background: #0a1929; border: 1px solid #1e3a4a; border-radius: 8px; padding: 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .pdf-icon { font-size: 28px; }
+  .download-info { flex: 1; text-align: left; }
+  .download-info .filename { font-size: 12px; font-weight: 600; color: #e2e8f0; }
+  .download-info .filesize { font-size: 10px; color: #475569; }
+  .dl-btn { background: #0891b2; color: white; padding: 8px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+  .expiry-countdown { background: #1a1200; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 12px; font-size: 10px; color: #f59e0b; text-align: center; margin-top: 8px; }
+
+  .section { margin-bottom: 36px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .note { background: #0d2235; border-left: 3px solid #67e8f9; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 11px; color: #94a3b8; line-height: 1.7; margin-top: 8px; }
+  .note strong { color: #67e8f9; }
+</style>
+</head>
+<body>
+
+<h1>Página de Aprobación — Diseño Actualizado</h1>
+<p class="subtitle">Cambios: T&C requerido · Link expira 24h post-aprobación · Descarga PDF</p>
+
+<!-- ═══════ ESTADO 1: PENDIENTE DE APROBAR ═══════ -->
+<div class="section">
+  <h2>Estado 1 — Aprobador abre el enlace (pendiente)</h2>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">approve.empresa.com/doc/a3f8c2d1e9b7 · Página pública sin login</span></div>
+    <div class="screen-body">
+      <div class="approval-card">
+        <div class="card-header">
+          <span class="logo">⚡ QUANTIUM CREW</span>
+          <span class="doc-type">📦 Entrega de Equipo</span>
+        </div>
+        <div class="card-body">
+          <div class="doc-summary">
+            <div class="doc-title">
+              <span>📋</span> Acta de Entrega — Laptop HP EliteBook
+            </div>
+            <div class="doc-grid">
+              <div class="doc-field"><label>Equipo</label><span>Laptop HP EliteBook</span></div>
+              <div class="doc-field"><label>N° Serie</label><span>HP-2024-00421</span></div>
+              <div class="doc-field"><label>Entregado a</label><span>Luis McTaggar</span></div>
+              <div class="doc-field"><label>Sucursal</label><span>Sede Central</span></div>
+              <div class="doc-field"><label>Condición</label><span>Buen estado</span></div>
+              <div class="doc-field"><label>Fecha</label><span>04/06/2026</span></div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- TERMS & CONDITIONS CHECKBOX -->
+          <div class="terms-block">
+            <div class="terms-label">
+              <div class="checkbox checked"></div>
+              <div class="terms-text">
+                He leído y acepto los <span class="terms-link">Términos y Condiciones</span> de este documento. Al aprobar, confirmo que la información es correcta y que autorizo esta entrega de forma digital en nombre de la empresa.
+              </div>
+            </div>
+            <!-- Términos expandidos al hacer clic -->
+            <div class="terms-modal visible">
+              <h4>Términos y Condiciones — Acta de Entrega de Equipo</h4>
+              <p><strong>1. Responsabilidad:</strong> El receptor declara recibir el equipo detallado en este documento en el estado indicado y se hace responsable de su custodia y uso adecuado.</p>
+              <p><strong>2. Uso corporativo:</strong> El equipo es propiedad de QUANTIUM CREW y debe usarse exclusivamente para actividades laborales autorizadas.</p>
+              <p><strong>3. Daños y pérdida:</strong> Cualquier daño por mal uso o pérdida deberá ser reportado inmediatamente al área de soporte técnico.</p>
+              <p><strong>4. Devolución:</strong> Al concluir la relación laboral, el equipo deberá ser devuelto en el mismo estado de entrega.</p>
+              <p><strong>5. Validez:</strong> La aprobación digital de este documento mediante este portal tiene la misma validez que una firma física.</p>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button class="btn btn-approve">✅ Aprobar documento</button>
+            <button class="btn btn-reject">❌ Rechazar</button>
+          </div>
+
+          <!-- Área de rechazo (visible al hacer clic en Rechazar) -->
+          <div class="reject-reason">
+            <label>Motivo del rechazo (requerido)</label>
+            <textarea placeholder="Ej: El número de serie no coincide con el inventario. Por favor verificar antes de proceder."></textarea>
+            <button class="btn btn-reject" style="width:100%;margin-top:8px;">Confirmar rechazo</button>
+          </div>
+
+          <div class="expiry-note">
+            <span>⏳</span> Este enlace es válido por <strong style="color:#94a3b8;">7 días</strong> o hasta que sea respondido
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ ESTADO 2: APROBADO — DESCARGA DISPONIBLE ═══════ -->
+<div class="section">
+  <h2>Estado 2 — Documento aprobado (descarga disponible · 24h)</h2>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">approve.empresa.com/doc/a3f8c2d1e9b7 · Post-aprobación</span></div>
+    <div class="screen-body">
+      <div class="approval-card">
+        <div class="card-header">
+          <span class="logo">⚡ QUANTIUM CREW</span>
+          <span class="doc-type" style="color:#10b981;border-color:#059669;background:#0a2a1a;">✅ Aprobado</span>
+        </div>
+        <div class="success-state">
+          <div class="success-icon">✅</div>
+          <div class="success-title">Documento Aprobado</div>
+          <div class="success-meta">
+            Aprobado por: <strong style="color:#67e8f9;">gerente@empresa.com</strong><br>
+            Fecha y hora: 04/06/2026 · 14:35 hrs<br>
+            ID de aprobación: <span style="font-family:monospace;color:#475569;">a3f8c2d1e9b7f041</span>
+          </div>
+
+          <div class="download-card">
+            <div class="pdf-icon">📄</div>
+            <div class="download-info">
+              <div class="filename">Entrega-Equipo-LuisMcTaggar-04062026.pdf</div>
+              <div class="filesize">128 KB · Incluye sello de aprobación</div>
+            </div>
+            <button class="dl-btn">⬇ Descargar</button>
+          </div>
+
+          <div class="expiry-countdown">
+            ⚠️ Este enlace y la descarga estarán disponibles por <strong>24 horas</strong> desde la aprobación.<br>
+            Expira el: <strong>05/06/2026 a las 14:35 hrs</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ ESTADO 3: LINK EXPIRADO ═══════ -->
+<div class="section">
+  <h2>Estado 3 — Enlace expirado (después de 24h post-aprobación)</h2>
+  <div class="screen">
+    <div class="screen-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="screen-title">approve.empresa.com/doc/a3f8c2d1e9b7 · Expirado</span></div>
+    <div class="screen-body">
+      <div class="approval-card">
+        <div class="card-header">
+          <span class="logo">⚡ QUANTIUM CREW</span>
+          <span class="doc-type" style="color:#f59e0b;border-color:#b45309;background:#1a1200;">⏰ Expirado</span>
+        </div>
+        <div class="success-state">
+          <div style="font-size:48px;margin-bottom:12px;">🔒</div>
+          <div style="font-size:15px;font-weight:700;color:#f59e0b;margin-bottom:6px;">Enlace expirado</div>
+          <div style="font-size:11px;color:#475569;line-height:1.7;">
+            Este documento fue aprobado el <strong style="color:#94a3b8;">04/06/2026 a las 14:35 hrs</strong>.<br>
+            El enlace de descarga estuvo disponible por 24 horas y ha expirado.<br><br>
+            Para obtener una copia del documento, contacta al equipo de soporte o inicia sesión en el panel.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ NOTA DE COMPORTAMIENTO ═══════ -->
+<div class="section">
+  <h2>Comportamiento del enlace — Resumen</h2>
+  <div class="note">
+    <strong>Antes de responder:</strong> Enlace válido por 7 días. El aprobador puede ver el documento y aprobar/rechazar.<br>
+    <strong>Post-aprobación (0–24h):</strong> Enlace muestra estado "Aprobado" con botón de descarga del PDF con sello.<br>
+    <strong>Post-aprobación (+24h):</strong> Enlace muestra pantalla "Expirado". El PDF sigue disponible dentro del Panel para quien tenga cuenta.<br>
+    <strong>Post-rechazo:</strong> Enlace muestra motivo del rechazo inmediatamente. Sin descarga disponible.<br>
+    <strong>T&C:</strong> El checkbox es obligatorio — el botón "Aprobar" permanece deshabilitado hasta que se marque. El texto de T&C se expande al hacer clic en "Términos y Condiciones".
+  </div>
+</div>
+
+</body>
+</html>
