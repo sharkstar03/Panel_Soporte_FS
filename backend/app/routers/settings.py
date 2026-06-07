@@ -11,6 +11,10 @@ from app.settings_helper import get_setting, set_setting
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
+# Únicas claves que pueden leerse SIN autenticación. Todo lo demás (SMTP,
+# CORS, expiración de tokens, etc.) queda restringido a settings.manage.
+PUBLIC_SETTING_KEYS = {"app_name"}
+
 
 @router.get("", response_model=list[SettingOut], dependencies=[Depends(require_permissions("settings.manage"))])
 def list_settings(db: Session = Depends(get_db)):
@@ -58,7 +62,13 @@ def update_setting(
 
 @router.get("/public/{key}")
 def get_public_setting(key: str, db: Session = Depends(get_db)):
-    """Endpoint público para leer settings no sensibles (ej. app_name)."""
+    """Endpoint público SOLO para settings explícitamente marcados como públicos.
+
+    Se valida contra una lista blanca para evitar la fuga de configuraciones
+    sensibles (credenciales SMTP, CORS, etc.) a usuarios no autenticados.
+    """
+    if key not in PUBLIC_SETTING_KEYS:
+        raise HTTPException(status_code=404, detail="Configuración no encontrada")
     s = db.exec(select(SystemSetting).where(SystemSetting.key == key)).first()
     if not s:
         raise HTTPException(status_code=404, detail="Configuración no encontrada")

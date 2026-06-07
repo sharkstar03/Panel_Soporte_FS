@@ -1,0 +1,23 @@
+# Secretos / entorno
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# Almacenamiento local de evidencias
+backend/storage/
+
+# Sistema
+.DS_Store
+*.log

@@ -18,14 +18,19 @@ services:
   api:
     build:
       context: ./backend
+    # ENTORNO DE PREVIEW EFÍMERO ÚNICAMENTE. APP_ENV=development desactiva las
+    # validaciones estrictas de secretos. NO usar esta configuración en producción.
     environment:
+      APP_ENV: ${APP_ENV:-development}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-soporte}:${POSTGRES_PASSWORD:-soporte}@db:5432/${POSTGRES_DB:-soporte}
-      JWT_SECRET: ${JWT_SECRET:-cambia_esto_en_produccion}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret-change-me}
+      MASTER_KEY: ${MASTER_KEY:-dev-only-insecure-master-key-change-me}
       JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-720}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       BOOTSTRAP_ADMIN: ${BOOTSTRAP_ADMIN:-true}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin1234}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
