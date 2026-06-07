@@ -1,8 +1,9 @@
 import hashlib
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from sqlmodel import Session, select
 
 from app.audit import log_event
@@ -14,6 +15,8 @@ from app.s3 import s3_client
 from app.schemas import AttachmentOut
 
 router = APIRouter(prefix="/attachments", tags=["attachments"])
+
+_LOCAL_STORAGE_DIR = Path(__file__).resolve().parents[2] / "storage"
 
 
 @router.post("/sessions/{session_id}", response_model=AttachmentOut)
@@ -38,12 +41,21 @@ def upload_attachment(
     storage_key = f"{session_id}/{uuid.uuid4().hex}{ext}"
 
     client = s3_client()
-    client.put_object(
-        Bucket=settings.s3_bucket,
-        Key=storage_key,
-        Body=data,
-        ContentType=file.content_type or "application/octet-stream",
-    )
+    if client:
+        client.put_object(
+            Bucket=settings.s3_bucket,
+            Key=storage_key,
+            Body=data,
+            ContentType=file.content_type or "application/octet-stream",
+        )
+    else:
+        # Sin S3/MinIO configurado: guardar en almacenamiento local.
+        out_path = (_LOCAL_STORAGE_DIR / storage_key).resolve()
+        storage_root = _LOCAL_STORAGE_DIR.resolve()
+        if not str(out_path).startswith(str(storage_root)):
+            raise HTTPException(status_code=500, detail="Ruta de almacenamiento inválida")
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(data)
 
     att = Attachment(
         session_id=session_id,
@@ -100,10 +112,22 @@ def download_attachment(
 
     client = s3_client()
     log_event(db, SessionEventType.attachment_downloaded, user_id=user.id, session_id=s.id, metadata={"attachment_id": att.id, "filename": att.filename})
-    obj = client.get_object(Bucket=settings.s3_bucket, Key=att.storage_key)
 
-    return StreamingResponse(
-        obj["Body"],
+    if client:
+        obj = client.get_object(Bucket=settings.s3_bucket, Key=att.storage_key)
+        return StreamingResponse(
+            obj["Body"],
+            media_type=att.mime,
+            headers={"Content-Disposition": f'attachment; filename="{att.filename}"'},
+        )
+
+    # Almacenamiento local
+    in_path = (_LOCAL_STORAGE_DIR / att.storage_key).resolve()
+    storage_root = _LOCAL_STORAGE_DIR.resolve()
+    if not str(in_path).startswith(str(storage_root)) or not in_path.exists():
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    return Response(
+        content=in_path.read_bytes(),
         media_type=att.mime,
         headers={"Content-Disposition": f'attachment; filename="{att.filename}"'},
     )

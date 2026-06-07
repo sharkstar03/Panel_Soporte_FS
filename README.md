@@ -42,9 +42,14 @@ docker compose up -d --build
 ```
 
 Servicios:
+- Panel (frontend): `http://localhost:3000`
 - API: `http://localhost:8000`
 - Swagger: `http://localhost:8000/docs`
-- MinIO consola: `http://localhost:9001`
+
+### Almacenamiento de archivos
+Por defecto los adjuntos, evidencias e imágenes se guardan en un **volumen local**
+(`apidata`), sin dependencias externas. Si prefieres usar **S3/MinIO**, define las
+variables `S3_ENDPOINT_URL`, `S3_ACCESS_KEY` y `S3_SECRET_KEY` en `.env`.
 
 ## Credenciales iniciales (bootstrap)
 Al arrancar se crea un admin con `ADMIN_USERNAME` y `ADMIN_PASSWORD` (definidos
@@ -55,6 +60,20 @@ Cambia la contraseña tras el primer inicio de sesión.
 Para pruebas locales sin secretos fuertes, usa `APP_ENV=development` (desactiva
 las validaciones estrictas). El stack de preview (`docker-compose.preview.yml`)
 ya viene en modo desarrollo. **No uses ese modo en producción.**
+
+## Tests y CI
+El backend tiene una suite de tests (`pytest`) que corre con SQLite, sin
+necesidad de Docker ni PostgreSQL:
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+Cada push y pull request ejecuta automáticamente el workflow de
+**GitHub Actions** (`.github/workflows/ci.yml`): lint + tests del backend y
+typecheck + build del frontend.
 
 ## Acceso desde la red local (LAN)
 Por defecto el panel solo responde en `localhost`. Para acceder desde otras computadoras o celulares en la misma red WiFi/cable:
