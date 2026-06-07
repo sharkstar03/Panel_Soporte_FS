@@ -1,0 +1,10 @@
+# Evita copiar dependencias/artefactos del host al contexto de build.
+node_modules
+dist
+.vite
+.git
+.gitignore
+*.log
+Dockerfile
+.dockerignore
+npm-debug.log*

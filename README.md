@@ -42,9 +42,14 @@ docker compose up -d --build
 ```
 
 Servicios:
+- Panel (frontend): `http://localhost:3000`
 - API: `http://localhost:8000`
 - Swagger: `http://localhost:8000/docs`
-- MinIO consola: `http://localhost:9001`
+
+### Almacenamiento de archivos
+Por defecto los adjuntos, evidencias e imágenes se guardan en un **volumen local**
+(`apidata`), sin dependencias externas. Si prefieres usar **S3/MinIO**, define las
+variables `S3_ENDPOINT_URL`, `S3_ACCESS_KEY` y `S3_SECRET_KEY` en `.env`.
 
 ## Credenciales iniciales (bootstrap)
 Al arrancar se crea un admin con `ADMIN_USERNAME` y `ADMIN_PASSWORD` (definidos

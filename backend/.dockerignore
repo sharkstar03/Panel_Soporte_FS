@@ -1,0 +1,14 @@
+# Evita copiar artefactos locales al contexto de build.
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+storage
+*.db
+*.sqlite3
+.git
+.gitignore
+*.log
+Dockerfile
+.dockerignore

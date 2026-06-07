@@ -5,6 +5,12 @@ from app.db import engine
 
 
 def run_migrations() -> None:
+    # Estas migraciones usan SQL específico de PostgreSQL (ALTER TYPE, ADD COLUMN
+    # IF NOT EXISTS, etc.). En otras bases (p. ej. SQLite para desarrollo local)
+    # SQLModel.create_all() crea el esquema completo, así que no aplican.
+    if engine.dialect.name != "postgresql":
+        return
+
     inspector = inspect(engine)
 
     if not inspector.has_table("asset"):
