@@ -1,0 +1,27 @@
+# Secretos / entorno
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# Almacenamiento local de evidencias
+backend/storage/
+
+# Base de datos SQLite de desarrollo local
+*.db
+*.sqlite3
+
+# Sistema
+.DS_Store
+*.log

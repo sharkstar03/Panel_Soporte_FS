@@ -1,3 +1,6 @@
+# Configuración de PRODUCCIÓN. Requiere un archivo .env con secretos fuertes
+# (ver .env.example). El arranque falla intencionalmente si faltan secretos
+# o si tienen valores inseguros.
 services:
   db:
     image: supabase/postgres:17.6.1.133
@@ -5,9 +8,10 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-soporte}
       POSTGRES_USER: ${POSTGRES_USER:-soporte}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-soporte}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio (define uno fuerte en .env)}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      # Solo accesible desde la propia máquina, no expuesto a la red.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,13 +24,16 @@ services:
     build:
       context: ./backend
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-soporte}:${POSTGRES_PASSWORD:-soporte}@db:5432/${POSTGRES_DB:-soporte}
-      JWT_SECRET: ${JWT_SECRET:-cambia_esto_en_produccion}
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-soporte}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio}@db:5432/${POSTGRES_DB:-soporte}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET es obligatorio (openssl rand -hex 32)}
+      MASTER_KEY: ${MASTER_KEY:?MASTER_KEY es obligatorio y debe ser distinto de JWT_SECRET (openssl rand -hex 32)}
       JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-720}
-      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS es obligatorio (ej: https://panel.midominio.com)}
       BOOTSTRAP_ADMIN: ${BOOTSTRAP_ADMIN:-true}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin1234}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD es obligatorio (contraseña fuerte)}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:

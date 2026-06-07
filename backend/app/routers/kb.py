@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 from app.audit import log_event
 from app.config import settings
 from app.deps import get_current_user, get_db, require_permissions
+from app.files import read_upload
 from app.models import KBArticle, SessionEventType, User
 from app.s3 import s3_client
 from app.schemas import KBIn, KBOut
@@ -73,9 +74,7 @@ def upload_kb_image(
     file: UploadFile = File(...),
     user: User = Depends(require_permissions("kb.manage")),
 ):
-    data = file.file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="Archivo vacío")
+    data = read_upload(file)
 
     ext = ""
     if file.filename and "." in file.filename:

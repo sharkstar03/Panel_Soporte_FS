@@ -14,10 +14,16 @@ from app.security import hash_password
 
 app = FastAPI(title="Panel Soporte - API", version="0.1.0")
 
+# Orígenes permitidos para CORS. No se combina el comodín "*" con
+# allow_credentials=True (configuración inválida/insegura): cuando se permite
+# cualquier origen, las credenciales quedan deshabilitadas.
+_cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+_allow_all_origins = _cors_origins == ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.cors_origins.split(",")] if settings.cors_origins != "*" else ["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=not _allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

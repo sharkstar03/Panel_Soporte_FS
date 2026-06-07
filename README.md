@@ -12,6 +12,28 @@ Este proyecto implementa el **backend** para un panel de soporte que:
 ## Requisitos
 - Docker + Docker Compose
 
+## Configuración obligatoria (producción)
+El stack de producción **exige secretos fuertes** y no arranca con valores por
+defecto inseguros. Antes de levantarlo:
+
+```bash
+# 1. Copia la plantilla de entorno
+cp .env.example .env
+
+# 2. Genera secretos aleatorios (uno distinto por variable)
+openssl rand -hex 32   # úsalo para JWT_SECRET
+openssl rand -hex 32   # úsalo para MASTER_KEY (DEBE ser distinta de JWT_SECRET)
+
+# 3. Edita .env y completa: JWT_SECRET, MASTER_KEY, CORS_ORIGINS,
+#    ADMIN_PASSWORD y POSTGRES_PASSWORD
+```
+
+> ⚠️ **MASTER_KEY** cifra toda la bóveda de secretos (contraseñas, OTP, llaves,
+> credenciales remotas). Si la pierdes o la cambias, no podrás descifrar lo ya
+> guardado. Guárdala en un gestor de secretos.
+>
+> El archivo `.env` está en `.gitignore`: **nunca** lo subas al repositorio.
+
 ## Levantar el stack
 En la carpeta del proyecto:
 
@@ -25,28 +47,14 @@ Servicios:
 - MinIO consola: `http://localhost:9001`
 
 ## Credenciales iniciales (bootstrap)
-Por defecto se crea un admin al arrancar:
-- usuario: `admin`
-- contraseña: `admin1234`
+Al arrancar se crea un admin con `ADMIN_USERNAME` y `ADMIN_PASSWORD` (definidos
+en `.env`). En producción la contraseña debe ser fuerte o el arranque fallará.
+Cambia la contraseña tras el primer inicio de sesión.
 
-**Cámbialo en producción** usando variables de entorno:
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
-- `JWT_SECRET`
-
-## Variables de entorno (opcional)
-Puedes crear un `.env` en esta carpeta y docker compose lo toma automáticamente.
-
-Ejemplo:
-```env
-JWT_SECRET=pon_un_secreto_largo
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=cambia_esto
-POSTGRES_DB=soporte
-POSTGRES_USER=soporte
-POSTGRES_PASSWORD=soporte
-S3_BUCKET=support-attachments
-```
+## Desarrollo local
+Para pruebas locales sin secretos fuertes, usa `APP_ENV=development` (desactiva
+las validaciones estrictas). El stack de preview (`docker-compose.preview.yml`)
+ya viene en modo desarrollo. **No uses ese modo en producción.**
 
 ## Acceso desde la red local (LAN)
 Por defecto el panel solo responde en `localhost`. Para acceder desde otras computadoras o celulares en la misma red WiFi/cable:

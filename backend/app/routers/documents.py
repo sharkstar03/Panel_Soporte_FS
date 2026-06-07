@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 from app.audit import log_event
 from app.deps import get_current_user, get_db, require_permissions
 from app.email import send_approval_email
+from app.files import read_upload
 from app.models import Document, DocumentEvidence, DocumentStatus, DocumentTemplate, SessionEventType, User, UserRole
 from app.pdf import generate_html_pdf_bytes, generate_pdf_bytes
 from app.s3 import s3_client
@@ -228,9 +229,7 @@ def upload_evidence(
     if user.role == UserRole.tecnico and doc.created_by_id != user.id:
         raise HTTPException(status_code=403, detail="No autorizado")
 
-    data = file.file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="Archivo vacío")
+    data = read_upload(file)
 
     import uuid as _uuid
     ext = ""

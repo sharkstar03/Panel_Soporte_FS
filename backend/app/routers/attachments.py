@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 from app.audit import log_event
 from app.config import settings
 from app.deps import get_current_user, get_db
+from app.files import read_upload
 from app.models import Attachment, SessionEventType, SupportSession, User
 from app.s3 import s3_client
 from app.schemas import AttachmentOut
@@ -28,9 +29,7 @@ def upload_attachment(
     if s.user_id != user.id and user.role not in ("admin", "supervisor"):
         raise HTTPException(status_code=403, detail="No autorizado")
 
-    data = file.file.read()
-    if not data:
-        raise HTTPException(status_code=400, detail="Archivo vacío")
+    data = read_upload(file)
 
     checksum = hashlib.sha256(data).hexdigest()
     ext = ""
