@@ -61,6 +61,20 @@ Para pruebas locales sin secretos fuertes, usa `APP_ENV=development` (desactiva
 las validaciones estrictas). El stack de preview (`docker-compose.preview.yml`)
 ya viene en modo desarrollo. **No uses ese modo en producción.**
 
+## Tests y CI
+El backend tiene una suite de tests (`pytest`) que corre con SQLite, sin
+necesidad de Docker ni PostgreSQL:
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+Cada push y pull request ejecuta automáticamente el workflow de
+**GitHub Actions** (`.github/workflows/ci.yml`): lint + tests del backend y
+typecheck + build del frontend.
+
 ## Acceso desde la red local (LAN)
 Por defecto el panel solo responde en `localhost`. Para acceder desde otras computadoras o celulares en la misma red WiFi/cable:
 
