@@ -127,6 +127,8 @@ class SessionEventType(str, Enum):
     asset_updated = "ASSET_UPDATED"
     asset_deleted = "ASSET_DELETED"
     user_created = "USER_CREATED"
+    user_updated = "USER_UPDATED"
+    user_password_changed = "USER_PASSWORD_CHANGED"
     link_created = "LINK_CREATED"
     link_deleted = "LINK_DELETED"
     kb_created = "KB_CREATED"

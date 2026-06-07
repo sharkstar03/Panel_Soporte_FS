@@ -26,6 +26,8 @@ export const authApi = {
   login: (username: string, password: string) =>
     api.post<{ access_token: string }>('/auth/login', { username, password }),
   me: () => api.get<import('./types').User>('/auth/me'),
+  changePassword: (current_password: string, new_password: string) =>
+    api.post<{ ok: boolean }>('/auth/change-password', { current_password, new_password }),
 }
 
 export const branchesApi = {
@@ -82,6 +84,10 @@ export const usersApi = {
   list: () => api.get<import('./types').User[]>('/users'),
   create: (data: { username: string; password: string; role: import('./types').UserRole }) =>
     api.post<import('./types').User>('/users', data),
+  update: (userId: number, data: { role?: import('./types').UserRole; active?: boolean }) =>
+    api.put<import('./types').User>(`/users/${userId}`, data),
+  setPassword: (userId: number, new_password: string) =>
+    api.post<{ ok: boolean }>(`/users/${userId}/password`, { new_password }),
   supervisors: () => api.get<import('./types').SupervisorUser[]>('/users/supervisors'),
   getSmtp: (userId: number) => api.get<import('./types').UserSmtpConfig>(`/users/${userId}/smtp`),
   updateSmtp: (userId: number, data: import('./types').UserSmtpUpdateIn) =>
