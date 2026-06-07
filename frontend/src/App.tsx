@@ -7,7 +7,7 @@ import { AssetsPage } from './pages/AssetsPage'
 import { SessionsPage } from './pages/SessionsPage'
 import { KBPage } from './pages/KBPage'
 import { LinksPage } from './pages/LinksPage'
-import { UsersPage } from './pages/UsersPage'
+import { AccessPage } from './pages/AccessPage'
 import { AuditPage } from './pages/AuditPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { PasswordsPage } from './pages/PasswordsPage'
@@ -41,8 +41,8 @@ export default function App() {
         <Route path="sessions" element={<SessionsPage />} />
         <Route path="kb" element={<KBPage />} />
         <Route path="links" element={<LinksPage />} />
-        <Route path="users" element={<RequirePerm perm="users.manage"><UsersPage /></RequirePerm>} />
-        <Route path="rbac" element={<Navigate to="/settings?tab=roles" replace />} />
+        <Route path="users" element={<RequirePerm perm="users.manage"><AccessPage /></RequirePerm>} />
+        <Route path="rbac" element={<Navigate to="/users?tab=roles" replace />} />
         <Route path="doc-templates" element={<Navigate to="/settings?tab=templates" replace />} />
         <Route path="audit" element={<RequirePerm perm="audit.view"><AuditPage /></RequirePerm>} />
         <Route path="settings" element={<RequirePerm perm="settings.manage"><SettingsPage /></RequirePerm>} />

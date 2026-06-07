@@ -16,7 +16,6 @@ import { Badge } from '../components/ui/Badge'
 import { BranchManager } from '../components/BranchManager'
 import { DangerZone } from '../components/DangerZone'
 import type { SystemSetting } from '../api/types'
-import { RBACPage } from './RBACPage'
 import { DocumentTemplatesPage } from './DocumentTemplatesPage'
 
 const categoryLabels: Record<string, string> = {
@@ -99,7 +98,6 @@ export function SettingsPage() {
   const { user, can } = useAuth()
   const [sp, setSp] = useSearchParams()
   const tabParam = sp.get('tab') || 'general'
-  const allowRoles = can('rbac.manage')
   const allowTemplates = can('documents.templates.manage')
   const allowDanger = user?.role === 'admin'
 
@@ -107,12 +105,11 @@ export function SettingsPage() {
     const base = ['general', 'branches']
     const extra: string[] = []
     if (allowTemplates) extra.push('templates')
-    if (allowRoles) extra.push('roles')
     if (allowDanger) extra.push('danger')
     return [...base, ...extra]
-  }, [allowTemplates, allowRoles, allowDanger])
+  }, [allowTemplates, allowDanger])
 
-  const [activeTab, setActiveTab] = useState<'general' | 'branches' | 'templates' | 'roles' | 'danger'>(
+  const [activeTab, setActiveTab] = useState<'general' | 'branches' | 'templates' | 'danger'>(
     (allowedTabs.includes(tabParam) ? tabParam : 'general') as any
   )
   const [edits, setEdits] = useState<Record<string, string>>({})
@@ -174,7 +171,6 @@ export function SettingsPage() {
     { id: 'general' as const, label: 'Sistema', icon: Settings, show: true },
     { id: 'branches' as const, label: 'Sucursales', icon: Building2, show: true },
     { id: 'templates' as const, label: 'Plantillas', icon: FileText, show: allowTemplates },
-    { id: 'roles' as const, label: 'Roles y permisos', icon: Shield, show: allowRoles },
     { id: 'danger' as const, label: 'Zona de Peligro', icon: Skull, show: allowDanger },
   ].filter(t => t.show)
 
@@ -348,16 +344,6 @@ export function SettingsPage() {
                 transition={{ duration: 0.2 }}
               >
                 <DocumentTemplatesPage embedded />
-              </motion.div>
-            ) : activeTab === 'roles' ? (
-              <motion.div
-                key="roles"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <RBACPage embedded />
               </motion.div>
             ) : (
               <motion.div

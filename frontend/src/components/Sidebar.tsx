@@ -14,7 +14,7 @@ const navItems = [
 ]
 
 const adminItems = [
-  { to: '/users', icon: Users, label: 'Usuarios', perm: 'users.manage' },
+  { to: '/users', icon: Users, label: 'Usuarios y Accesos', perm: 'users.manage' },
   { to: '/audit', icon: ShieldAlert, label: 'Auditoría', perm: 'audit.view' },
   { to: '/settings', icon: Settings, label: 'Configuración', perm: 'settings.manage' },
 ]
