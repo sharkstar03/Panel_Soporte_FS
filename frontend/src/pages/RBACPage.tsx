@@ -138,9 +138,11 @@ export function RBACPage({ embedded = false }: { embedded?: boolean }) {
     onError: () => toast.error('Error al eliminar rol'),
   })
 
-  if (permsQ.isLoading || rolesQ.isLoading) return <PageLoader />
-  const permissions = permsQ.data as Permission[] || []
-  const roles = rolesQ.data as Role[] || []
+  // Solo bloqueamos por la carga de roles; los permisos solo se necesitan al
+  // crear/editar. Así la lista no queda en blanco si /rbac/permissions tarda.
+  if (rolesQ.isLoading) return <PageLoader />
+  const permissions = (permsQ.data as Permission[]) || []
+  const roles = (rolesQ.data as Role[]) || []
 
   return (
     <div className={embedded ? 'space-y-6' : 'animate-fade-in space-y-6'}>
@@ -162,6 +164,18 @@ export function RBACPage({ embedded = false }: { embedded?: boolean }) {
         </div>
       )}
 
+      {rolesQ.isError ? (
+        <div className="bg-red-op/10 border border-red-op/20 rounded-lg p-6 text-center">
+          <p className="text-sm text-red-op">No se pudieron cargar los roles.</p>
+          <p className="text-xs text-text-muted mt-1">Verifica que tu sesión siga activa e inténtalo de nuevo.</p>
+          <Button size="sm" variant="ghost" className="mt-3" onClick={() => rolesQ.refetch()}>Reintentar</Button>
+        </div>
+      ) : roles.length === 0 ? (
+        <div className="bg-panel border border-dashed border-border rounded-lg p-8 text-center">
+          <p className="text-sm text-text-secondary">Aún no hay roles.</p>
+          <p className="text-xs text-text-muted mt-1">Crea el primero con el botón «Nuevo rol».</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {roles.map((r) => (
           <div key={r.id} className="bg-panel border border-border rounded-lg p-5">
@@ -193,6 +207,7 @@ export function RBACPage({ embedded = false }: { embedded?: boolean }) {
           </div>
         ))}
       </div>
+      )}
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo rol" width="max-w-3xl">
         <RoleForm
