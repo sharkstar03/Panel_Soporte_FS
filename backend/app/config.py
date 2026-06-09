@@ -51,6 +51,13 @@ class Settings(BaseSettings):
     # Límite de tamaño de subida de archivos (MB).
     max_upload_mb: int = 25
 
+    # Timeout de sentencias de PostgreSQL en milisegundos (evita consultas
+    # colgadas que agoten el pool/la DB).
+    db_statement_timeout_ms: int = 30000
+    # Modo SSL para conectar a PostgreSQL (None = sin cambios). Útil cuando la
+    # DB es gestionada/remota: "require", "verify-full", etc.
+    db_sslmode: Optional[str] = None
+
     # S3 / MinIO — optional
     s3_endpoint_url: Optional[str] = None
     s3_access_key: Optional[str] = None

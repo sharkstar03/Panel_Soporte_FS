@@ -6,7 +6,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-soporte}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-soporte}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      # Solo accesible desde la propia máquina (no exponer la DB a la red).
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

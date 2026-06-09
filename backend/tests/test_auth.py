@@ -27,9 +27,23 @@ def test_protected_endpoint_requires_auth(client):
 
 
 def test_login_rate_limit(client):
-    # Tras varios intentos fallidos desde la misma IP debe devolver 429.
+    # Tras varios intentos fallidos debe devolver 429.
     codes = [
         client.post("/auth/login", json={"username": "x", "password": "y"}).status_code
         for _ in range(15)
+    ]
+    assert 429 in codes
+
+
+def test_rate_limit_not_bypassed_by_xff_spoofing(client):
+    # Rotar X-Forwarded-For NO debe evadir el límite: se limita también por
+    # usuario, así que la fuerza bruta a una cuenta se frena sin importar la IP.
+    codes = [
+        client.post(
+            "/auth/login",
+            json={"username": "bruteme", "password": "wrong"},
+            headers={"X-Forwarded-For": f"10.0.0.{i}"},
+        ).status_code
+        for i in range(15)
     ]
     assert 429 in codes
