@@ -12,7 +12,16 @@ from app.routers import settings as settings_router
 from app.s3 import ensure_bucket
 from app.security import hash_password
 
-app = FastAPI(title="Panel Soporte - API", version="0.1.0")
+# En producción se ocultan la documentación interactiva y el esquema OpenAPI
+# para no exponer el mapa completo de la API a usuarios no autenticados.
+_docs_enabled = not settings.is_production
+app = FastAPI(
+    title="Panel Soporte - API",
+    version="0.1.0",
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
+)
 
 # Orígenes permitidos para CORS. No se combina el comodín "*" con
 # allow_credentials=True (configuración inválida/insegura): cuando se permite
