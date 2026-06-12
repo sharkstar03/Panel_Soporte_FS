@@ -39,7 +39,7 @@ FIELD_LABELS = {
 
 
 class _PDF(FPDF):
-    company_name: str = "QUANTIUM CREW"
+    company_name: str = "FARMACIA SABA"
 
     def header(self):
         self.set_fill_color(8, 145, 178)
@@ -103,7 +103,7 @@ def _box(pdf: _PDF, label: str, value: str, x: float, y: float, w: float):
     pdf.cell(w - 4, 7, str(value) if value else "-", align="L")
 
 
-def generate_pdf_bytes(document, company_name: str = "QUANTIUM CREW") -> bytes:
+def generate_pdf_bytes(document, company_name: str = "FARMACIA SABA") -> bytes:
     """Return raw PDF bytes for a Document ORM instance."""
     data = json.loads(document.data_json)
     type_label = TYPE_LABELS.get(document.type, document.type)
@@ -274,7 +274,7 @@ def generate_pdf_bytes(document, company_name: str = "QUANTIUM CREW") -> bytes:
     return bytes(pdf.output())
 
 
-def generate_html_pdf_bytes(html_content: str, company_name: str = "QUANTIUM CREW") -> bytes:
+def generate_html_pdf_bytes(html_content: str, company_name: str = "FARMACIA SABA") -> bytes:
     pdf = _HTMLPDF()
     pdf.company_name = company_name
     pdf.add_page()

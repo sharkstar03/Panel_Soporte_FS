@@ -214,6 +214,11 @@ export interface SystemSetting {
   category: string; updated_at: string; updated_by_id: number | null
 }
 
+export interface SessionConfig {
+  session_min_reason_length: number
+  session_min_summary_length: number
+}
+
 export interface PasswordEntry {
   id: number; title: string; username: string | null; password_plain?: string
   url: string | null; notes: string | null; category: string
@@ -297,4 +302,59 @@ export interface DocumentCreateIn {
   title: string
   data_json: string
   approver_email: string
+}
+
+// ── Impresoras fiscales (PlaceFT / DGI) ──────────────────────────────────────
+export type PrinterEstado = 'Actualizado' | 'Pendiente' | 'Crítico'
+
+export interface FiscalEquipo {
+  serie: string
+  modelo: string
+  machineId: string
+  taxpayerId: string
+  estado_dgi: string
+  distribuidor: string
+  contribuyente: string
+  primera_transmision: string
+  ultima_transmision: string
+  dias_sin_actualizar: number
+  estado: PrinterEstado
+  sucursal: string
+  detalle: string
+  ultimoReporteZ: string
+  ultimaZ: string
+}
+
+export interface FiscalMapping {
+  serie: string
+  sucursal?: string
+  caja?: string
+  sistema?: string
+  detalle?: string
+  zNota?: string
+  estadoInterno?: string
+  assetId?: number
+  anydeskId?: string
+  anydeskPassword?: string
+  mantenimientoUltimo?: string
+  mantenimientoProximo?: string
+  alertaNota?: string
+  manualDiagnosis?: string
+  imagenes?: { name: string; file: string }[]
+}
+
+export interface ZReportResult {
+  success: boolean
+  z_number?: string
+  z_date?: string
+  cached?: boolean
+  cached_at?: string
+  raw?: any
+}
+
+export interface DgiConfig {
+  username: string
+  taxpayer_id: string
+  has_password: boolean
+  updated_at?: string | null
 }

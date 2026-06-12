@@ -3,6 +3,7 @@ import axios from 'axios'
 export const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
+  timeout: 30_000,
 })
 
 api.interceptors.request.use((config) => {
@@ -131,6 +132,7 @@ export const settingsApi = {
   get: (key: string) => api.get<import('./types').SystemSetting>(`/settings/${key}`),
   update: (key: string, value: any) => api.put<import('./types').SystemSetting>(`/settings/${key}`, { value }),
   getPublic: (key: string) => api.get<{ key: string; value: any }>(`/settings/public/${key}`),
+  sessionConfig: () => api.get<import('./types').SessionConfig>('/settings/public/session-config'),
 }
 
 export const passwordsApi = {
@@ -182,6 +184,29 @@ export const documentTemplatesApi = {
   delete: (id: number) => api.delete(`/document-templates/${id}`),
   render: (data: { html: string; data_json: string; title?: string }) =>
     api.post<{ html: string }>('/document-templates/render', data),
+}
+
+export const printersApi = {
+  equipos: () =>
+    api.get<{ success: boolean; equipos: import('./types').FiscalEquipo[]; total: number; taxpayerId: string; timestamp: string }>(
+      '/printers/equipos',
+    ),
+  mappings: () =>
+    api.get<{ success: boolean; mappings: import('./types').FiscalMapping[] }>('/printers/mappings'),
+  saveMappings: (mappings: Record<string, string | number | undefined>[]) =>
+    api.post<{ success: boolean; updated: number }>('/printers/mappings', { mappings }),
+  clearFields: (fields?: string[]) =>
+    api.post<{ success: boolean; clearedSeries: number; fields: string[] }>('/printers/mappings/clear', { fields }),
+  zreport: (data: { serial: string; days?: number; machineId?: string; taxpayerId?: string; transmission?: string }) =>
+    api.post<import('./types').ZReportResult>('/printers/zreport', data),
+  diagnostics: () =>
+    api.get<{ success: boolean; options: string[] }>('/printers/diagnostics'),
+  saveDiagnostics: (options: string[]) =>
+    api.post<{ success: boolean; options: string[] }>('/printers/diagnostics', { options }),
+  getConfig: () => api.get<import('./types').DgiConfig>('/printers/config'),
+  updateConfig: (data: { username: string; password?: string; taxpayer_id?: string }) =>
+    api.put<import('./types').DgiConfig>('/printers/config', data),
+  testConfig: () => api.post<{ success: boolean; message: string }>('/printers/config/test'),
 }
 
 export const adminApi = {

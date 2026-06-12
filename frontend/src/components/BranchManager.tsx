@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Building2, Pencil, Trash2, ArrowUp, ArrowDown, Hash } from 'lucide-react'
+import { Building2, Pencil, Trash2, GripVertical } from 'lucide-react'
 import { branchesApi } from '../api/client'
 import { Button } from './ui/Button'
 import { Input, FormField } from './ui/Input'
@@ -23,8 +23,11 @@ export function BranchManager({ open, onClose, inline }: Props) {
   const [editing, setEditing] = useState<Branch | null>(null)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  const [orderEdits, setOrderEdits] = useState<Record<number, number>>({})
-  const [savingOrder, setSavingOrder] = useState<Record<number, boolean>>({})
+  const [order, setOrder] = useState<number[]>([])
+  const [busy, setBusy] = useState(false)
+  const [draggingId, setDraggingId] = useState<number | null>(null)
+  const [overId, setOverId] = useState<number | null>(null)
+  const dragId = useRef<number | null>(null)
 
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches'],
@@ -83,48 +86,51 @@ export function BranchManager({ open, onClose, inline }: Props) {
     return a.name.localeCompare(b.name)
   })
 
-  const persistOrder = async (branch: Branch, newOrder: number) => {
+  // Mantiene el orden local sincronizado con el servidor (salvo mientras se guarda).
+  useEffect(() => {
+    if (busy) return
+    setOrder(sortedBranches.map(b => b.id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branches, busy])
+
+  const byId = new Map(branches.map(b => [b.id, b]))
+  const orderedBranches: Branch[] = (order.length ? order : sortedBranches.map(b => b.id))
+    .map(id => byId.get(id))
+    .filter((b): b is Branch => !!b)
+
+  // Persiste un nuevo orden asignando sort_order = posición (0..n).
+  const persistOrder = async (newIds: number[]) => {
     if (!isAdmin) return
-    setSavingOrder(prev => ({ ...prev, [branch.id]: true }))
+    setBusy(true)
     try {
-      await branchesApi.update(branch.id, {
-        name: branch.name,
-        code: branch.code ?? undefined,
-        sort_order: newOrder,
-      })
+      const updates = newIds
+        .map((id, idx) => {
+          const b = byId.get(id)
+          if (!b || (b.sort_order ?? 0) === idx) return null
+          return branchesApi.update(id, { name: b.name, code: b.code ?? undefined, sort_order: idx })
+        })
+        .filter((p): p is ReturnType<typeof branchesApi.update> => p !== null)
+      if (updates.length) await Promise.all(updates)
       await qc.invalidateQueries({ queryKey: ['branches'] })
     } finally {
-      setSavingOrder(prev => ({ ...prev, [branch.id]: false }))
+      setBusy(false)
     }
   }
 
-  const moveBranch = async (branchId: number, dir: -1 | 1) => {
-    if (!isAdmin) return
-    const list = sortedBranches
-    const idx = list.findIndex(b => b.id === branchId)
-    const other = list[idx + dir]
-    const current = list[idx]
-    if (!current || !other) return
-
-    // Swap de sort_order para mover visualmente sin recalcular toda la lista.
-    setSavingOrder(prev => ({ ...prev, [current.id]: true, [other.id]: true }))
-    try {
-      await Promise.all([
-        branchesApi.update(current.id, {
-          name: current.name,
-          code: current.code ?? undefined,
-          sort_order: other.sort_order ?? 0,
-        }),
-        branchesApi.update(other.id, {
-          name: other.name,
-          code: other.code ?? undefined,
-          sort_order: current.sort_order ?? 0,
-        }),
-      ])
-      await qc.invalidateQueries({ queryKey: ['branches'] })
-    } finally {
-      setSavingOrder(prev => ({ ...prev, [current.id]: false, [other.id]: false }))
-    }
+  const handleDrop = (targetId: number) => {
+    const from = dragId.current
+    setDraggingId(null)
+    setOverId(null)
+    dragId.current = null
+    if (from == null || from === targetId) return
+    const fromIdx = order.indexOf(from)
+    const toIdx = order.indexOf(targetId)
+    if (fromIdx < 0 || toIdx < 0) return
+    const next = [...order]
+    next.splice(fromIdx, 1)
+    next.splice(toIdx, 0, from)
+    setOrder(next)
+    persistOrder(next)
   }
 
   const content = (
@@ -158,9 +164,14 @@ export function BranchManager({ open, onClose, inline }: Props) {
 
       {/* List */}
       <div className="space-y-2">
-        <p className="text-[11px] font-sans font-medium text-text-muted uppercase tracking-wide">
-          {branches.length} sucursal{branches.length !== 1 ? 'es' : ''}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-sans font-medium text-text-muted uppercase tracking-wide">
+            {branches.length} sucursal{branches.length !== 1 ? 'es' : ''}
+          </p>
+          {isAdmin && branches.length > 1 && (
+            <p className="text-[11px] font-sans text-text-muted">Arrastra para ordenar</p>
+          )}
+        </div>
         {isLoading ? (
           <p className="text-sm text-text-muted font-sans">Cargando...</p>
         ) : branches.length === 0 ? (
@@ -171,16 +182,28 @@ export function BranchManager({ open, onClose, inline }: Props) {
         ) : (
           <div className="border border-border rounded-lg overflow-hidden">
             <AnimatePresence>
-              {sortedBranches.map((branch, i) => (
+              {orderedBranches.map((branch, i) => (
                 <motion.div
                   key={branch.id}
+                  layout
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  animate={{ opacity: draggingId === branch.id ? 0.4 : 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ delay: i * 0.02 }}
-                  className="flex items-center justify-between px-4 py-3 border-b border-border/50 last:border-0 hover:bg-elevated/30"
+                  draggable={isAdmin}
+                  onDragStart={() => { dragId.current = branch.id; setDraggingId(branch.id) }}
+                  onDragOver={(e) => { e.preventDefault(); if (overId !== branch.id) setOverId(branch.id) }}
+                  onDrop={() => handleDrop(branch.id)}
+                  onDragEnd={() => { setDraggingId(null); setOverId(null); dragId.current = null }}
+                  className={`flex items-center justify-between px-4 py-3 border-b border-border/50 last:border-0 transition-colors ${
+                    overId === branch.id && draggingId !== branch.id ? 'bg-cyan/10' : 'hover:bg-elevated/30'
+                  }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {isAdmin && (
+                      <span className="cursor-grab active:cursor-grabbing text-text-muted hover:text-text-secondary flex-shrink-0" title="Arrastrar para reordenar">
+                        <GripVertical size={15} />
+                      </span>
+                    )}
                     <div className="w-8 h-8 rounded-lg bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan flex-shrink-0">
                       <Building2 size={14} />
                     </div>
@@ -191,49 +214,9 @@ export function BranchManager({ open, onClose, inline }: Props) {
                     </div>
                   </div>
 
-                  {/* Orden / acciones */}
+                  {/* Acciones */}
                   {isAdmin && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {/* Posición */}
-                      <div className="hidden sm:flex items-center gap-1 mr-1">
-                        <Hash size={12} className="text-text-muted" />
-                        <Input
-                          type="number"
-                          min={0}
-                          value={orderEdits[branch.id] ?? (branch.sort_order ?? 0)}
-                          onChange={(e) => setOrderEdits(prev => ({ ...prev, [branch.id]: Number(e.target.value) }))}
-                          onBlur={() => {
-                            const v = orderEdits[branch.id]
-                            if (v === undefined) return
-                            if (v === (branch.sort_order ?? 0)) return
-                            persistOrder(branch, v)
-                          }}
-                          className="w-16 px-2 py-1 text-xs font-mono"
-                          disabled={!!savingOrder[branch.id]}
-                          title="Posición (menor = más arriba)"
-                        />
-                      </div>
-
-                      {/* Mover */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => moveBranch(branch.id, -1)}
-                        disabled={i === 0 || !!savingOrder[branch.id]}
-                        title="Subir"
-                      >
-                        <ArrowUp size={12} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => moveBranch(branch.id, 1)}
-                        disabled={i === sortedBranches.length - 1 || !!savingOrder[branch.id]}
-                        title="Bajar"
-                      >
-                        <ArrowDown size={12} />
-                      </Button>
-
                       <Button variant="ghost" size="sm" onClick={() => startEdit(branch)}>
                         <Pencil size={12} />
                       </Button>

@@ -6,23 +6,32 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover"
     />
-    <title>QUANTIUM CREW — Panel de Soporte</title>
+    <title>Farmacia Saba — Panel Soporte</title>
+    <script>
+      // Aplica el tema guardado antes de pintar (evita parpadeo).
+      (function () {
+        try {
+          if ((localStorage.getItem('theme') || 'dark') === 'light') {
+            document.documentElement.classList.add('light')
+          }
+        } catch (e) {}
+      })()
+    </script>
 
     <!-- PWA / instalación -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#070b14" />
-    <meta name="description" content="Panel de soporte técnico de QUANTIUM CREW." />
+    <meta name="description" content="Panel Soporte de Farmacia Saba." />
 
     <!-- Iconos -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/logo-fs.png" />
+    <link rel="apple-touch-icon" href="/logo-fs.png" />
 
     <!-- iOS: comportamiento de app instalada -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Soporte Ops" />
+    <meta name="apple-mobile-web-app-title" content="Panel Soporte" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

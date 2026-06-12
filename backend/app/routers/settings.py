@@ -7,13 +7,29 @@ from app.audit import log_event
 from app.deps import get_current_user, get_db, require_permissions
 from app.models import SessionEventType, SystemSetting, User
 from app.schemas import SettingOut, SettingUpdateIn
-from app.settings_helper import get_setting, set_setting
+from app.settings_helper import (
+    get_session_min_reason_length,
+    get_session_min_summary_length,
+    get_setting,
+    set_setting,
+)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 # Únicas claves que pueden leerse SIN autenticación. Todo lo demás (SMTP,
 # CORS, expiración de tokens, etc.) queda restringido a settings.manage.
 PUBLIC_SETTING_KEYS = {"app_name"}
+
+
+@router.get("/public/session-config")
+def get_public_session_config(db: Session = Depends(get_db)):
+    """Configuración pública del módulo de sesiones (usada por el formulario
+    de nueva sesión antes de autenticar, o para mantener UI sincronizada).
+    """
+    return {
+        "session_min_reason_length": get_session_min_reason_length(db),
+        "session_min_summary_length": get_session_min_summary_length(db),
+    }
 
 
 @router.get("", response_model=list[SettingOut], dependencies=[Depends(require_permissions("settings.manage"))])

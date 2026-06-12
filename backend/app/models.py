@@ -301,6 +301,77 @@ class DocumentTemplate(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow, index=True)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Impresoras fiscales (integración PlaceFT / DGI)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class FiscalConfig(SQLModel, table=True):
+    """Configuración global (una sola fila) de la cuenta DGI/PlaceFT.
+
+    La contraseña se guarda cifrada con la bóveda (MASTER_KEY), igual que el
+    resto de secretos del panel.
+    """
+
+    id: Optional[int] = Field(default=1, primary_key=True)
+    username: str = Field(default="")
+    password_enc: str = Field(default="")
+    taxpayer_id: str = Field(default="")
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
+
+
+class FiscalMapping(SQLModel, table=True):
+    """Datos internos editables por el equipo de soporte para cada impresora,
+    indexados por número de serie (no provienen de la DGI)."""
+
+    serie: str = Field(primary_key=True)
+    sucursal: Optional[str] = Field(default=None, index=True)
+    caja: Optional[str] = None
+    sistema: Optional[str] = None
+    detalle: Optional[str] = None
+    z_nota: Optional[str] = None
+    estado_interno: Optional[str] = None
+    # Activo del panel vinculado a esta impresora: las conexiones remotas se
+    # gestionan desde Activos/Sesiones (y quedan registradas como sesión).
+    asset_id: Optional[int] = Field(default=None, foreign_key="asset.id", index=True)
+    # (Heredados del proyecto original; ya no se usan en la UI, se conservan por
+    # compatibilidad con datos migrados.)
+    anydesk_id: Optional[str] = None
+    anydesk_password: Optional[str] = None
+    mantenimiento_ultimo: Optional[str] = None
+    mantenimiento_proximo: Optional[str] = None
+    alerta_nota: Optional[str] = None
+    manual_diagnosis: Optional[str] = None
+    imagenes: Optional[str] = None  # JSON array [{name, file}]
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class FiscalMachineIndex(SQLModel, table=True):
+    """Caché serie -> machineId/taxpayerId resuelta desde la API de PlaceFT."""
+
+    serie: str = Field(primary_key=True)
+    machine_id: Optional[str] = None
+    taxpayer_id: Optional[str] = None
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class FiscalZCache(SQLModel, table=True):
+    """Último Reporte Z conocido por serie (persistente entre consultas)."""
+
+    serie: str = Field(primary_key=True)
+    datez: Optional[str] = None
+    numz: Optional[str] = None
+    transmission_date: Optional[str] = None
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class FiscalDiagnosticOption(SQLModel, table=True):
+    """Opciones de diagnóstico rápido reutilizables para las impresoras."""
+
+    option: str = Field(primary_key=True)
+
+
 class Permission(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     code: str = Field(index=True, unique=True)

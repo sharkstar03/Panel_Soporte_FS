@@ -199,7 +199,7 @@ def download_pdf(
     log_event(db, SessionEventType.document_downloaded, user_id=user.id,
               metadata={"document_id": doc.id})
 
-    company = get_setting(db, "doc_company_name", "") or get_setting(db, "app_name", "QUANTIUM CREW")
+    company = get_setting(db, "doc_company_name", "") or get_setting(db, "app_name", "FARMACIA SABA")
     pdf_bytes = (
         generate_html_pdf_bytes(doc.rendered_html, company_name=company)
         if doc.rendered_html

@@ -31,6 +31,8 @@ def seed_rbac(db: Session) -> None:
         ("security_keys.view", "secrets", "Ver listado de llaves"),
         ("security_keys.reveal", "secrets", "Revelar llaves"),
         ("security_keys.manage", "secrets", "Crear/eliminar llaves"),
+        ("printers.view", "printers", "Ver monitoreo de impresoras fiscales"),
+        ("printers.manage", "printers", "Editar mapeos/diagnósticos y configurar credenciales DGI"),
         ("audit.view", "admin", "Ver auditoría"),
         ("settings.manage", "admin", "Ver/editar configuración"),
         ("admin.purge", "admin", "Ejecutar purgas administrativas"),
@@ -83,6 +85,7 @@ def seed_rbac(db: Session) -> None:
             "passwords.view", "passwords.reveal", "passwords.manage",
             "otp.view", "otp.reveal", "otp.manage",
             "security_keys.view", "security_keys.reveal", "security_keys.manage",
+            "printers.view", "printers.manage",
             "audit.view",
             "settings.manage",
         },
@@ -96,6 +99,7 @@ def seed_rbac(db: Session) -> None:
             "passwords.view",
             "otp.view",
             "security_keys.view",
+            "printers.view",
         },
     }
 

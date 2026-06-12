@@ -20,3 +20,11 @@ def test_public_setting_cors_blocked(client):
 
 def test_settings_list_requires_permission(client):
     assert client.get("/settings").status_code == 401
+
+
+def test_public_session_config_returns_defaults(client):
+    r = client.get("/settings/public/session-config")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["session_min_reason_length"] == 20
+    assert data["session_min_summary_length"] == 30

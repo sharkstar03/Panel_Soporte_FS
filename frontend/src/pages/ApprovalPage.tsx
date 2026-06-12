@@ -152,7 +152,7 @@ export function ApprovalPage() {
         className="w-full max-w-lg bg-panel border border-border rounded-2xl overflow-hidden shadow-2xl"
       >
         <div className="bg-elevated/40 px-6 py-4 border-b border-border flex items-center justify-between">
-          <span className="font-bold text-cyan text-sm tracking-wide">QUANTIUM CREW</span>
+          <span className="font-bold text-cyan text-sm tracking-wide">FARMACIA SABA</span>
           <span className="text-text-muted text-xs font-mono">Aprobación de Documento</span>
         </div>
         {children}

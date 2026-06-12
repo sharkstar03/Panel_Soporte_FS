@@ -1,9 +1,13 @@
+import re
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.models import AssetType, DocumentStatus, DocumentType, KeyType, RemoteTool, SessionEventType, SessionResult, SessionStatus, UserRole
+
+
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 
 class TokenOut(BaseModel):
@@ -331,6 +335,14 @@ class DocumentCreateIn(BaseModel):
     title: str
     data_json: str          # JSON-encoded form fields
     approver_email: str
+
+    @field_validator("approver_email")
+    @classmethod
+    def _validate_approver_email(cls, v: str) -> str:
+        email = (v or "").strip().lower()
+        if not email or not _EMAIL_RE.match(email):
+            raise ValueError("El correo del aprobador no es válido")
+        return email
 
 
 class DocumentUpdateIn(BaseModel):

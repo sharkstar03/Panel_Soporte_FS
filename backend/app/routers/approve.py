@@ -130,7 +130,7 @@ def download_approved_pdf(token: str, db: Session = Depends(get_db)):
     if not doc.download_expires_at or datetime.utcnow() > doc.download_expires_at:
         raise HTTPException(status_code=410, detail="El enlace de descarga ha expirado")
 
-    company = get_setting(db, "doc_company_name", "") or get_setting(db, "app_name", "QUANTIUM CREW")
+    company = get_setting(db, "doc_company_name", "") or get_setting(db, "app_name", "FARMACIA SABA")
     pdf_bytes = generate_pdf_bytes(doc, company_name=company)
     safe_title = doc.title.replace(" ", "_")[:40]
     return Response(

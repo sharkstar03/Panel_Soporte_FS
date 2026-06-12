@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { Sidebar } from './Sidebar'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Layout() {
   const [open, setOpen] = useState(false)
@@ -48,9 +49,10 @@ export function Layout() {
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-2">
-              <img src="/logo-cyan.png" alt="Q" className="h-7 w-7 object-contain" />
-              <span className="font-display text-sm font-bold tracking-wide">QUANTIUM</span>
+              <img src="/logo-fs.png" alt="Farmacia Saba" className="h-10 w-10 object-contain" />
+              <span className="font-display text-sm font-bold tracking-wide">FARMACIA SABA</span>
             </div>
+            <ThemeToggle className="ml-auto" />
           </div>
         </header>
 

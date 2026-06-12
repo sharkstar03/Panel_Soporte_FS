@@ -63,12 +63,12 @@ export function LoginPage() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-lg bg-cyan/10 border border-cyan/30 shadow-cyan-glow mb-4 relative">
-            <img src="/logo-cyan.png" alt="Quantium Crew" className="w-10 h-10 object-contain" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-lg bg-cyan/10 border border-cyan/30 shadow-cyan-glow mb-4 relative">
+            <img src="/logo-fs.png" alt="Farmacia Saba" className="w-16 h-16 object-contain" />
             <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan animate-pulse shadow-cyan-glow" />
           </div>
-          <h1 className="font-display font-bold text-2xl text-text-primary tracking-wide">QUANTIUM CREW</h1>
-          <p className="font-mono text-xs text-text-muted tracking-wider mt-1">PANEL DE SOPORTE v1.0</p>
+          <h1 className="font-display font-bold text-2xl text-text-primary tracking-wide">FARMACIA SABA</h1>
+          <p className="font-mono text-xs text-text-muted tracking-wider mt-1">PANEL SOPORTE v1.0</p>
         </div>
 
         {/* Terminal lines */}

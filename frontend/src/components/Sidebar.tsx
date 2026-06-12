@@ -1,12 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Monitor, ClipboardList, BookOpen, Link2, Users, LogOut, LayoutDashboard, ShieldAlert, Settings, KeyRound, FileText, X } from 'lucide-react'
+import { Monitor, ClipboardList, BookOpen, Link2, Users, LogOut, LayoutDashboard, ShieldAlert, Settings, KeyRound, FileText, Printer, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { motion } from 'framer-motion'
+import { ThemeToggle } from './ThemeToggle'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', perm: 'dashboard.view' },
   { to: '/assets', icon: Monitor, label: 'Activos', perm: 'assets.view' },
   { to: '/sessions', icon: ClipboardList, label: 'Sesiones', perm: 'sessions.view' },
+  { to: '/printers', icon: Printer, label: 'Impresoras Fiscales', perm: 'printers.view' },
   { to: '/documents', icon: FileText, label: 'Documentos', perm: 'documents.view' },
   { to: '/passwords', icon: KeyRound, label: 'Contraseñas', perm: 'passwords.view' },
   { to: '/kb', icon: BookOpen, label: 'Base de Conocimiento', perm: 'kb.view' },
@@ -47,10 +49,10 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center justify-between border-b border-border px-5 py-5 pt-[max(env(safe-area-inset-top),1.25rem)]">
         <div className="flex items-center gap-2.5">
-          <img src="/logo-cyan.png" alt="Q" className="h-8 w-8 object-contain" />
+          <img src="/logo-fs.png" alt="Farmacia Saba" className="h-11 w-11 object-contain" />
           <div>
-            <p className="font-display font-bold text-text-primary text-sm tracking-wide leading-none">QUANTIUM</p>
-            <p className="font-mono text-[10px] text-text-muted tracking-wider leading-none mt-0.5">SOPORTE OPS</p>
+            <p className="font-display font-bold text-text-primary text-sm tracking-wide leading-none">FARMACIA SABA</p>
+            <p className="font-mono text-[10px] text-text-muted tracking-wider leading-none mt-0.5">PANEL SOPORTE</p>
           </div>
         </div>
         {/* Cerrar (solo móvil) */}
@@ -100,6 +102,10 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
       {/* User */}
       <div className="border-t border-border px-3 py-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+        <div className="mb-2 flex items-center justify-between gap-2 px-1">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Tema</span>
+          <ThemeToggle />
+        </div>
         <div className="mb-2 flex items-center gap-3 rounded border border-border bg-elevated px-3 py-2">
           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded border border-cyan/30 bg-cyan/20">
             <span className="font-mono text-xs font-bold text-cyan">{user?.username?.[0]?.toUpperCase()}</span>

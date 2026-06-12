@@ -1,17 +1,17 @@
-/* Service Worker — QUANTIUM Soporte Ops PWA
+/* Service Worker — Farmacia Saba Panel Soporte PWA
  * Estrategia:
  *  - /api/*  → NUNCA se cachea (datos sensibles: tokens, credenciales).
  *  - navegación (HTML) → network-first con fallback offline al app shell.
  *  - estáticos (js/css/img) → stale-while-revalidate.
  */
-const CACHE = 'qso-cache-v1';
+const CACHE = 'qso-cache-v2';
 const SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/icon-192.png',
   '/icon-512.png',
-  '/logo-cyan.png',
+  '/logo-fs.png',
 ];
 
 self.addEventListener('install', (event) => {

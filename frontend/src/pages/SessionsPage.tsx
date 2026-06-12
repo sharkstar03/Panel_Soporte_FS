@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ClipboardList, Plus, Zap, X, CheckCircle2, AlertTriangle, ExternalLink, Copy, Key, Building2, FileText, Download, Clock, CircleDot, Paperclip } from 'lucide-react'
@@ -34,6 +35,8 @@ export function SessionsPage() {
   const qc = useQueryClient()
   const { can } = useAuth()
   const [showCreate, setShowCreate] = useState(false)
+  const [initialAssetId, setInitialAssetId] = useState<number | undefined>(undefined)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [closing, setClosing] = useState<SupportSession | null>(null)
   const [connecting, setConnecting] = useState<SupportSession | null>(null)
   const [reporting, setReporting] = useState<SupportSession | null>(null)
@@ -45,6 +48,17 @@ export function SessionsPage() {
   })
   const { data: assets = [] } = useQuery({ queryKey: ['assets'], queryFn: () => assetsApi.list().then(r => r.data) })
   const { data: branches = [] } = useQuery({ queryKey: ['branches'], queryFn: () => branchesApi.list().then(r => r.data) })
+
+  // Apertura directa desde otra sección (p. ej. Impresoras Fiscales): /sessions?asset_id=X
+  useEffect(() => {
+    const aid = searchParams.get('asset_id')
+    if (aid) {
+      setInitialAssetId(Number(aid))
+      setShowCreate(true)
+      searchParams.delete('asset_id')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const create = useMutation({
     mutationFn: (d: SessionCreateIn) => sessionsApi.create(d),
@@ -165,12 +179,13 @@ export function SessionsPage() {
       </div>
 
       {/* Create modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nueva Sesión de Soporte">
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); setInitialAssetId(undefined) }} title="Nueva Sesión de Soporte">
         <CreateSessionForm
           assets={assets}
           branches={branches}
+          initialAssetId={initialAssetId}
           onSave={(d) => create.mutate(d)}
-          onCancel={() => setShowCreate(false)}
+          onCancel={() => { setShowCreate(false); setInitialAssetId(undefined) }}
           loading={create.isPending}
           error={create.error as Error | null}
         />
@@ -217,27 +232,31 @@ export function SessionsPage() {
   )
 }
 
-function CreateSessionForm({ assets, branches, onSave, onCancel, loading, error }: {
+function CreateSessionForm({ assets, branches, initialAssetId, onSave, onCancel, loading, error }: {
   assets: import('../api/types').Asset[]
   branches: import('../api/types').Branch[]
+  initialAssetId?: number
   onSave: (d: SessionCreateIn) => void
   onCancel: () => void
   loading: boolean
   error: Error | null
 }) {
-  const [branchId, setBranchId] = useState<number | 'unassigned'>('unassigned')
-  const [assetId, setAssetId] = useState<number>(0)
+  const initialAsset = initialAssetId ? assets.find(a => a.id === initialAssetId) : undefined
+  const [branchId, setBranchId] = useState<number | 'unassigned'>(
+    initialAsset ? (initialAsset.branch_id ?? 'unassigned') : 'unassigned'
+  )
+  const [assetId, setAssetId] = useState<number>(initialAssetId ?? 0)
   const [tool, setTool] = useState<RemoteTool>('anydesk')
   const [reason, setReason] = useState('')
   const [ticket, setTicket] = useState('')
   const [assetQuery, setAssetQuery] = useState('')
 
-  const { data: minReasonVal } = useQuery({
-    queryKey: ['public-setting', 'session_min_reason_length'],
-    queryFn: () => settingsApi.getPublic('session_min_reason_length').then((r) => r.data.value),
+  const { data: sessionConfig } = useQuery({
+    queryKey: ['session-config'],
+    queryFn: () => settingsApi.sessionConfig().then((r) => r.data),
   })
 
-  const minReasonLength = typeof minReasonVal === 'number' ? minReasonVal : 20
+  const minReasonLength = sessionConfig?.session_min_reason_length ?? 20
 
   const filteredAssets = assets.filter(a => {
     if (branchId === 'unassigned') return a.branch_id === null
@@ -479,6 +498,13 @@ function CloseSessionForm({ session, assetName, onSave, onCancel, loading }: {
   const [result, setResult] = useState<SessionResult>('resuelto')
   const [summary, setSummary] = useState('')
 
+  const { data: sessionConfig } = useQuery({
+    queryKey: ['session-config'],
+    queryFn: () => settingsApi.sessionConfig().then((r) => r.data),
+  })
+
+  const minSummaryLength = sessionConfig?.session_min_summary_length ?? 30
+
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave({ result, summary }) }} className="space-y-4">
       <div className="bg-elevated rounded-lg px-4 py-3 border border-border">
@@ -493,14 +519,14 @@ function CloseSessionForm({ session, assetName, onSave, onCancel, loading }: {
           ))}
         </Select>
       </FormField>
-      <FormField label={`Resumen * (mín. 30 chars — ${summary.length}/30)`}>
+      <FormField label={`Resumen * (mín. ${minSummaryLength} chars — ${summary.length}/${minSummaryLength})`}>
         <Textarea
           value={summary}
           onChange={e => setSummary(e.target.value)}
           rows={4}
           placeholder="Describe lo que se realizó durante la sesión..."
           required
-          minLength={30}
+          minLength={minSummaryLength}
         />
       </FormField>
       <div className="flex gap-3 pt-2">

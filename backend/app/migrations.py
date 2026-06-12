@@ -1,7 +1,40 @@
 from sqlalchemy import inspect, text
-from sqlalchemy.exc import ProgrammingError
 
 from app.db import engine
+
+
+def _add_enum_values(enum_name: str, values: list[str]) -> None:
+    """Agrega valores a un enum de PostgreSQL de forma segura.
+
+    ``ALTER TYPE ... ADD VALUE`` no puede compartir un bloque de transacción
+    con otras sentencias: si una falla, aborta toda la transacción. Por eso
+    cada adición se ejecuta en una conexión en AUTOCOMMIT, de modo que sea
+    independiente e idempotente (``IF NOT EXISTS``).
+    """
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        for value in values:
+            try:
+                conn.execute(text(f"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{value}';"))
+            except Exception:
+                # El tipo puede no existir todavía o el valor ya estar presente.
+                pass
+
+
+def _ensure_enum_type(enum_name: str, values: list[str]) -> None:
+    """Crea un tipo enum si no existe.
+
+    PostgreSQL no soporta ``CREATE TYPE IF NOT EXISTS``; emitir ``CREATE TYPE``
+    sobre un tipo ya existente lanza un error que abortaría la transacción aun
+    capturándolo en Python. Por eso comprobamos ``pg_type`` y creamos en una
+    conexión AUTOCOMMIT independiente.
+    """
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        exists = conn.execute(
+            text("SELECT 1 FROM pg_type WHERE typname = :name"), {"name": enum_name}
+        ).first()
+        if not exists:
+            vals = ", ".join(f"'{v}'" for v in values)
+            conn.execute(text(f"CREATE TYPE {enum_name} AS ENUM ({vals});"))
 
 
 def run_migrations() -> None:
@@ -15,6 +48,27 @@ def run_migrations() -> None:
 
     if not inspector.has_table("asset"):
         return
+
+    # Adiciones a enums: deben correr fuera de la transacción principal
+    # (ver _add_enum_values). Son idempotentes gracias a IF NOT EXISTS.
+    _add_enum_values("remotetool", ["teamviewer", "rdp"])
+    _add_enum_values("sessioneventtype", [
+        "ATTACHMENT_DOWNLOADED",
+        "ASSET_DELETED",
+        "LINK_CREATED", "LINK_DELETED",
+        "KB_CREATED", "KB_UPDATED", "KB_DELETED",
+        "SETTING_UPDATED",
+        "PASSWORD_CREATED", "PASSWORD_DELETED", "PASSWORD_VIEWED",
+        "OTP_CREATED", "OTP_DELETED", "OTP_VIEWED",
+        "SECKEY_CREATED", "SECKEY_DELETED", "SECKEY_VIEWED",
+        "DOCUMENT_CREATED", "DOCUMENT_APPROVED", "DOCUMENT_REJECTED", "DOCUMENT_DOWNLOADED",
+    ])
+
+    # Tipos enum de documentos (también fuera de la transacción principal).
+    _ensure_enum_type("documenttype", [
+        "entrega_equipo", "control_equipo", "pago_proveedor", "checklist_diario",
+    ])
+    _ensure_enum_type("documentstatus", ["pending", "approved", "rejected"])
 
     with engine.begin() as conn:
         # Crear tabla branch si no existe
@@ -58,44 +112,15 @@ def run_migrations() -> None:
             ADD COLUMN IF NOT EXISTS rdp_username VARCHAR;
         """))
 
-        # Agregar valores al enum remotetool
-        for value in ("teamviewer", "rdp"):
-            try:
-                conn.execute(text(f"ALTER TYPE remotetool ADD VALUE IF NOT EXISTS '{value}';"))
-            except ProgrammingError:
-                pass
-
-        # Agregar valores al enum sessioneventtype que faltan
-        new_event_types = [
-            "ATTACHMENT_DOWNLOADED",
-            "ASSET_DELETED",
-            "LINK_CREATED", "LINK_DELETED",
-            "KB_CREATED", "KB_UPDATED", "KB_DELETED",
-            "SETTING_UPDATED",
-            "PASSWORD_CREATED", "PASSWORD_DELETED", "PASSWORD_VIEWED",
-            "OTP_CREATED", "OTP_DELETED", "OTP_VIEWED",
-            "SECKEY_CREATED", "SECKEY_DELETED", "SECKEY_VIEWED",
-        ]
-        for value in new_event_types:
-            try:
-                conn.execute(text(f"ALTER TYPE sessioneventtype ADD VALUE IF NOT EXISTS '{value}';"))
-            except ProgrammingError:
-                pass
+        # Vincular impresoras fiscales con activos (columna nueva).
+        if inspector.has_table("fiscalmapping"):
+            conn.execute(text("ALTER TABLE fiscalmapping ADD COLUMN IF NOT EXISTS asset_id INTEGER;"))
 
         # Agregar category a kbarticle si falta
         if inspector.has_table("kbarticle"):
             kb_cols = {c["name"] for c in inspector.get_columns("kbarticle")}
             if "category" not in kb_cols:
                 conn.execute(text("ALTER TABLE kbarticle ADD COLUMN category VARCHAR DEFAULT 'general';"))
-
-        try:
-            conn.execute(text("CREATE TYPE documenttype AS ENUM ('entrega_equipo','control_equipo','pago_proveedor','checklist_diario');"))
-        except Exception:
-            pass
-        try:
-            conn.execute(text("CREATE TYPE documentstatus AS ENUM ('pending','approved','rejected');"))
-        except Exception:
-            pass
 
         if not inspector.has_table("documenttemplate"):
             conn.execute(text("""
@@ -117,14 +142,6 @@ def run_migrations() -> None:
 
         # Crear tabla document
         if not inspector.has_table("document"):
-            try:
-                conn.execute(text("CREATE TYPE documenttype AS ENUM ('entrega_equipo','control_equipo','pago_proveedor','checklist_diario');"))
-            except Exception:
-                pass
-            try:
-                conn.execute(text("CREATE TYPE documentstatus AS ENUM ('pending','approved','rejected');"))
-            except Exception:
-                pass
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS document (
                     id SERIAL PRIMARY KEY,
@@ -227,13 +244,6 @@ def run_migrations() -> None:
                 CREATE INDEX IF NOT EXISTS ix_userrolelink_user_id ON userrolelink(user_id);
                 CREATE INDEX IF NOT EXISTS ix_userrolelink_role_id ON userrolelink(role_id);
             """))
-
-        # Agregar audit events de documentos al enum (legacy — column is now VARCHAR)
-        for value in ["DOCUMENT_CREATED", "DOCUMENT_APPROVED", "DOCUMENT_REJECTED", "DOCUMENT_DOWNLOADED"]:
-            try:
-                conn.execute(text(f"ALTER TYPE sessioneventtype ADD VALUE IF NOT EXISTS '{value}';"))
-            except ProgrammingError:
-                pass
 
         # Convertir sessionevent.type de enum a VARCHAR para evitar problemas de sincronizacion
         conn.execute(text("""

@@ -49,3 +49,24 @@ def test_empty_file_rejected(client, auth):
         headers=auth,
     )
     assert r.status_code == 400
+
+
+def test_disallowed_extension_rejected(client, auth):
+    session_id = _create_session(client, auth)
+    r = client.post(
+        f"/attachments/sessions/{session_id}",
+        files={"file": ("malware.exe", io.BytesIO(b"payload"), "application/octet-stream")},
+        headers=auth,
+    )
+    assert r.status_code == 415
+
+
+def test_mime_content_mismatch_rejected(client, auth):
+    session_id = _create_session(client, auth)
+    # Archivo que dice ser PNG pero no lo es.
+    r = client.post(
+        f"/attachments/sessions/{session_id}",
+        files={"file": ("fake.png", io.BytesIO(b"no-es-una-imagen"), "image/png")},
+        headers=auth,
+    )
+    assert r.status_code == 415

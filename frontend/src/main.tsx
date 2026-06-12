@@ -6,6 +6,12 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import './index.css'
+import { applyTheme, getTheme } from './theme'
+
+// Aplica el tema guardado en cuanto arranca la app (además del script inline en
+// index.html). Garantiza que el tema visible siempre coincida con la preferencia
+// guardada, aunque el navegador sirva un index.html cacheado sin el script.
+applyTheme(getTheme())
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } })
 

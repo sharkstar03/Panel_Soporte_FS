@@ -1,7 +1,7 @@
 {
-  "name": "QUANTIUM Soporte Ops",
-  "short_name": "Soporte Ops",
-  "description": "Panel de soporte técnico de QUANTIUM CREW: activos, sesiones remotas, documentos y bóveda de credenciales.",
+  "name": "Farmacia Saba Panel Soporte",
+  "short_name": "Panel Soporte",
+  "description": "Panel Soporte de Farmacia Saba: activos, sesiones remotas, documentos y bóveda de credenciales.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

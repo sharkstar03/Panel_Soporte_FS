@@ -10,4 +10,7 @@ boto3==1.35.90
 pydantic-settings==2.7.1
 cryptography==44.0.2
 fpdf2==2.7.9
+requests==2.32.3
+beautifulsoup4==4.12.3
+filetype==1.2.0
 

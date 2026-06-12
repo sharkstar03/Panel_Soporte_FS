@@ -16,6 +16,22 @@ def get_setting(db: Session, key: str, default: Any = None) -> Any:
         return s.value
 
 
+def get_session_min_reason_length(db: Session) -> int:
+    val = get_setting(db, "session_min_reason_length", 20)
+    try:
+        return max(1, int(val))
+    except (TypeError, ValueError):
+        return 20
+
+
+def get_session_min_summary_length(db: Session) -> int:
+    val = get_setting(db, "session_min_summary_length", 30)
+    try:
+        return max(1, int(val))
+    except (TypeError, ValueError):
+        return 30
+
+
 def set_setting(
     db: Session,
     key: str,
@@ -51,7 +67,7 @@ def set_setting(
 DEFAULT_SETTINGS: list[dict[str, Any]] = [
     {
         "key": "app_name",
-        "value": "QUANTIUM SOPORTE OPS",
+        "value": "FARMACIA SABA PANEL SOPORTE",
         "description": "Nombre de la aplicación mostrado en el login y panel.",
         "category": "branding",
     },

@@ -4,31 +4,31 @@ export default {
   theme: {
     extend: {
       colors: {
-        base: '#070b14',
-        panel: '#0d1422',
-        surface: '#111c2e',
-        elevated: '#162236',
-        border: '#1a2a40',
-        'border-bright': '#274060',
+        base: 'rgb(var(--c-base) / <alpha-value>)',
+        panel: 'rgb(var(--c-panel) / <alpha-value>)',
+        surface: 'rgb(var(--c-surface) / <alpha-value>)',
+        elevated: 'rgb(var(--c-elevated) / <alpha-value>)',
+        border: 'rgb(var(--c-border) / <alpha-value>)',
+        'border-bright': 'rgb(var(--c-border-bright) / <alpha-value>)',
         cyan: {
-          DEFAULT: '#00d4ff',
-          dim: '#0096b3',
+          DEFAULT: 'rgb(var(--c-cyan) / <alpha-value>)',
+          dim: 'rgb(var(--c-cyan-dim) / <alpha-value>)',
           glow: '#00d4ff33',
         },
         green: {
-          op: '#00e676',
-          'op-dim': '#00a854',
+          op: 'rgb(var(--c-green) / <alpha-value>)',
+          'op-dim': 'rgb(var(--c-green-dim) / <alpha-value>)',
         },
         amber: {
-          op: '#ffab00',
+          op: 'rgb(var(--c-amber) / <alpha-value>)',
         },
         red: {
-          op: '#ff4757',
+          op: 'rgb(var(--c-red) / <alpha-value>)',
         },
         text: {
-          primary: '#e2eaf4',
-          secondary: '#8896a8',
-          muted: '#3d5068',
+          primary: 'rgb(var(--c-text) / <alpha-value>)',
+          secondary: 'rgb(var(--c-text-2) / <alpha-value>)',
+          muted: 'rgb(var(--c-text-3) / <alpha-value>)',
         },
       },
       fontFamily: {

@@ -15,14 +15,20 @@ from app.models import (
     User,
 )
 from app.schemas import SessionCloseIn, SessionCreateIn, SessionOut, SessionReportOut, SessionEventOut, SessionAttachmentOut
+from app.settings_helper import get_session_min_reason_length, get_session_min_summary_length
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
 @router.post("", response_model=SessionOut, dependencies=[Depends(require_permissions("sessions.manage"))])
 def create_session(payload: SessionCreateIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    if len(payload.reason.strip()) < 20:
-        raise HTTPException(status_code=400, detail="El motivo debe tener al menos 20 caracteres")
+    min_reason = get_session_min_reason_length(db)
+    if len(payload.reason.strip()) < min_reason:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El motivo debe tener al menos {min_reason} caracteres",
+        )
+    asset = db.get(Asset, payload.asset_id)
     asset = db.get(Asset, payload.asset_id)
     if not asset:
         raise HTTPException(status_code=404, detail="Activo no encontrado")
@@ -91,8 +97,12 @@ def close_session(
         raise HTTPException(status_code=404, detail="Sesión no encontrada")
     if s.user_id != user.id and user.role not in ("admin", "supervisor"):
         raise HTTPException(status_code=403, detail="No autorizado")
-    if len(payload.summary.strip()) < 30:
-        raise HTTPException(status_code=400, detail="El resumen debe tener al menos 30 caracteres")
+    min_summary = get_session_min_summary_length(db)
+    if len(payload.summary.strip()) < min_summary:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El resumen debe tener al menos {min_summary} caracteres",
+        )
 
     s.status = SessionStatus.closed
     s.end_at = datetime.utcnow()

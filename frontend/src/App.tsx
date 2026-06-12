@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { AssetsPage } from './pages/AssetsPage'
 import { SessionsPage } from './pages/SessionsPage'
+import { PrintersPage } from './pages/PrintersPage'
 import { KBPage } from './pages/KBPage'
 import { LinksPage } from './pages/LinksPage'
 import { AccessPage } from './pages/AccessPage'
@@ -39,6 +40,7 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="assets" element={<AssetsPage />} />
         <Route path="sessions" element={<SessionsPage />} />
+        <Route path="printers" element={<RequirePerm perm="printers.view"><PrintersPage /></RequirePerm>} />
         <Route path="kb" element={<KBPage />} />
         <Route path="links" element={<LinksPage />} />
         <Route path="users" element={<RequirePerm perm="users.manage"><AccessPage /></RequirePerm>} />

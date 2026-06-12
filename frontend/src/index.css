@@ -3,28 +3,67 @@
 @tailwind utilities;
 
 @layer base {
+  /* Tema oscuro (por defecto) — canales RGB para usar con rgb(var(--x) / alpha) */
+  :root {
+    --c-base: 7 11 20;
+    --c-panel: 13 20 34;
+    --c-surface: 17 28 46;
+    --c-elevated: 22 34 54;
+    --c-border: 26 42 64;
+    --c-border-bright: 39 64 96;
+    --c-cyan: 0 212 255;
+    --c-cyan-dim: 0 150 179;
+    --c-green: 0 230 118;
+    --c-green-dim: 0 168 84;
+    --c-amber: 255 171 0;
+    --c-red: 255 71 87;
+    --c-text: 226 234 244;
+    --c-text-2: 136 150 168;
+    --c-text-3: 61 80 104;
+    --c-grid: 0 212 255;
+  }
+
+  /* Tema claro */
+  .light {
+    --c-base: 244 247 251;
+    --c-panel: 255 255 255;
+    --c-surface: 247 249 252;
+    --c-elevated: 237 242 248;
+    --c-border: 214 222 233;
+    --c-border-bright: 176 190 208;
+    --c-cyan: 8 145 178;
+    --c-cyan-dim: 14 116 144;
+    --c-green: 22 163 74;
+    --c-green-dim: 21 128 61;
+    --c-amber: 217 119 6;
+    --c-red: 220 38 38;
+    --c-text: 15 27 45;
+    --c-text-2: 81 96 122;
+    --c-text-3: 148 163 184;
+    --c-grid: 8 145 178;
+  }
+
   * { box-sizing: border-box; }
   html, body, #root { height: 100%; margin: 0; padding: 0; }
   body {
-    background-color: #070b14;
-    color: #e2eaf4;
+    background-color: rgb(var(--c-base));
+    color: rgb(var(--c-text));
     font-family: 'IBM Plex Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #070b14; }
-  ::-webkit-scrollbar-thumb { background: #1a2a40; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #274060; }
+  ::-webkit-scrollbar-track { background: rgb(var(--c-base)); }
+  ::-webkit-scrollbar-thumb { background: rgb(var(--c-border)); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--c-border-bright)); }
 
-  /* Prose overrides for dark theme */
   .prose code::before, .prose code::after { content: ''; }
 }
 
 @layer utilities {
   .bg-grid-pattern {
     background-image:
-      linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+      linear-gradient(rgb(var(--c-grid) / 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--c-grid) / 0.025) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 }

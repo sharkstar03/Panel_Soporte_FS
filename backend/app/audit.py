@@ -1,10 +1,12 @@
 import json
-import traceback
+import logging
 from typing import Any, Optional
 
 from sqlmodel import Session
 
 from app.models import SessionEvent, SessionEventType
+
+logger = logging.getLogger(__name__)
 
 
 def log_event(
@@ -27,5 +29,5 @@ def log_event(
         # La auditoría nunca debe romper la operación principal.
         # Hacemos rollback de la sesión para no contaminar la transacción principal.
         db.rollback()
-        traceback.print_exc()
+        logger.exception("Error al registrar evento de auditoría")
 

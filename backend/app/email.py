@@ -66,8 +66,8 @@ def send_approval_email(
         <tr>
           <td style="background:linear-gradient(135deg,#0891b2 0%,#0e7490 100%);padding:32px 40px;text-align:center;">
             <p style="margin:0 0 8px;font-size:28px;line-height:1;">&#9889;</p>
-            <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;">QUANTIUM CREW</h1>
-            <p style="margin:6px 0 0;color:#c5f6fa;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Soporte Tecnico</p>
+            <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;">FARMACIA SABA</h1>
+            <p style="margin:6px 0 0;color:#c5f6fa;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Panel Soporte</p>
           </td>
         </tr>
         <!-- Body -->
@@ -114,7 +114,7 @@ def send_approval_email(
         <tr>
           <td style="padding:20px 40px;text-align:center;border-top:1px solid #1e3a4a;background:#091320;">
             <p style="margin:0;color:#475569;font-size:11px;">
-              &copy; QUANTIUM CREW — Panel de Soporte<br>
+              &copy; Farmacia Saba — Panel Soporte<br>
               Este correo fue generado automaticamente. No respondas a esta direccion.
             </p>
           </td>

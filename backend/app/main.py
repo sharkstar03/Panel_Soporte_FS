@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlmodel import Session, select
 
 from app.audit import log_event
@@ -7,9 +11,9 @@ from app.config import settings
 from app.db import init_db, engine
 from app.migrations import run_migrations
 from app.models import SessionEventType, User, UserRole
-from app.routers import admin, approve, assets, attachments, auth, branches, documents, document_templates, kb, links, otp, passwords, rbac, security_keys, sessions, users, audit
+from app.routers import admin, approve, assets, attachments, auth, branches, documents, document_templates, kb, links, otp, passwords, printers, rbac, security_keys, sessions, users, audit
 from app.routers import settings as settings_router
-from app.s3 import ensure_bucket
+from app.s3 import ensure_bucket, s3_client
 from app.security import hash_password
 
 # En producción se ocultan la documentación interactiva y el esquema OpenAPI
@@ -48,6 +52,7 @@ app.include_router(kb.router)
 app.include_router(audit.router)
 app.include_router(settings_router.router)
 app.include_router(passwords.router)
+app.include_router(printers.router)
 app.include_router(otp.router)
 app.include_router(security_keys.router)
 app.include_router(documents.router)
@@ -83,6 +88,41 @@ def on_startup():
                 log_event(db, SessionEventType.user_created, user_id=admin.id, metadata={"username": admin.username, "role": admin.role})
 
 
+def _check_db() -> bool:
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
+
+
+def _check_storage() -> bool:
+    try:
+        if settings.s3_enabled:
+            client = s3_client()
+            if client is None:
+                return False
+            client.head_bucket(Bucket=settings.s3_bucket)
+            return True
+
+        # Almacenamiento local: verificar que el directorio exista y sea escribible.
+        storage_dir = Path(__file__).resolve().parent / "storage"
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        with NamedTemporaryFile(dir=storage_dir, delete=True):
+            return True
+    except Exception:
+        return False
+
+
 @app.get("/health")
 def health():
-    return {"ok": True}
+    db_ok = _check_db()
+    storage_ok = _check_storage()
+    status = "ok" if db_ok and storage_ok else "fail"
+    code = 200 if status == "ok" else 503
+    return Response(
+        status_code=code,
+        media_type="application/json",
+        content=f'{{"status":"{status}","db":{str(db_ok).lower()},"storage":{str(storage_ok).lower()},"version":"0.1.0"}}',
+    )
