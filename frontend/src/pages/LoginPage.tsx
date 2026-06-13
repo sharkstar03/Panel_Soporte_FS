@@ -13,7 +13,7 @@ interface HealthChecks {
 }
 
 export function LoginPage() {
-  const { login, user } = useAuth()
+  const { login, verifyOtp, user } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -22,6 +22,8 @@ export function LoginPage() {
   const [success, setSuccess] = useState(false)
   const [termLine, setTermLine] = useState(0)
   const [checks, setChecks] = useState<HealthChecks>({ backend: 'checking', db: 'checking', dgi: 'checking' })
+  const [pendingToken, setPendingToken] = useState<string | null>(null)
+  const [otpCode, setOtpCode] = useState('')
 
   const checking = checks.backend === 'checking' || checks.db === 'checking' || checks.dgi === 'checking'
   const ready = checks.backend === 'ok' && checks.db === 'ok' && checks.dgi === 'ok'
@@ -70,12 +72,33 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      await login(username, password)
+      const result = await login(username, password)
+      if (result.twoFactorRequired) {
+        setPendingToken(result.pendingToken ?? null)
+        setLoading(false)
+        return
+      }
       setLoading(false)
       setSuccess(true)
       setTimeout(() => navigate('/', { replace: true }), 900)
     } catch {
       setError('Credenciales inválidas. Verifica usuario y contraseña.')
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyOtp = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!pendingToken) return
+    setError('')
+    setLoading(true)
+    try {
+      await verifyOtp(pendingToken, otpCode)
+      setLoading(false)
+      setSuccess(true)
+      setTimeout(() => navigate('/', { replace: true }), 900)
+    } catch {
+      setError('Código incorrecto o expirado.')
       setLoading(false)
     }
   }
@@ -144,43 +167,74 @@ export function LoginPage() {
 
         {/* Form */}
         <motion.form
-          onSubmit={handleSubmit}
+          onSubmit={pendingToken ? handleVerifyOtp : handleSubmit}
           className="bg-panel border border-border rounded-lg p-6 space-y-4 shadow-2xl shadow-black/50"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-sans font-medium text-text-muted uppercase tracking-wide">Usuario</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
-              required
-              autoFocus
-              disabled={!ready || loading || success}
-              className="w-full bg-elevated border border-border rounded px-3 py-2.5 text-sm text-text-primary font-mono placeholder:text-text-muted focus:outline-none focus:border-cyan/60 focus:ring-1 focus:ring-cyan/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-sans font-medium text-text-muted uppercase tracking-wide">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              disabled={!ready || loading || success}
-              className="w-full bg-elevated border border-border rounded px-3 py-2.5 text-sm text-text-primary font-mono placeholder:text-text-muted focus:outline-none focus:border-cyan/60 focus:ring-1 focus:ring-cyan/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            />
-            <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-[11px] text-text-muted hover:text-cyan transition-colors">
-                ¿Olvidaste tu contraseña?
-              </Link>
+          {pendingToken ? (
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-sans font-medium text-text-muted uppercase tracking-wide">Código de verificación</label>
+              <p className="text-xs text-text-muted mb-1">Revisa tu correo e ingresa el código de 6 dígitos.</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                required
+                autoFocus
+                disabled={loading || success}
+                className="w-full bg-elevated border border-border rounded px-3 py-2.5 text-lg text-text-primary font-mono text-center tracking-[0.5em] placeholder:text-text-muted focus:outline-none focus:border-cyan/60 focus:ring-1 focus:ring-cyan/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setPendingToken(null); setOtpCode(''); setError('') }}
+                  className="text-[11px] text-text-muted hover:text-cyan transition-colors"
+                >
+                  Volver al inicio de sesión
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-sans font-medium text-text-muted uppercase tracking-wide">Usuario</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin"
+                  required
+                  autoFocus
+                  disabled={!ready || loading || success}
+                  className="w-full bg-elevated border border-border rounded px-3 py-2.5 text-sm text-text-primary font-mono placeholder:text-text-muted focus:outline-none focus:border-cyan/60 focus:ring-1 focus:ring-cyan/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-sans font-medium text-text-muted uppercase tracking-wide">Contraseña</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  disabled={!ready || loading || success}
+                  className="w-full bg-elevated border border-border rounded px-3 py-2.5 text-sm text-text-primary font-mono placeholder:text-text-muted focus:outline-none focus:border-cyan/60 focus:ring-1 focus:ring-cyan/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                />
+                <div className="flex justify-end">
+                  <Link to="/forgot-password" className="text-[11px] text-text-muted hover:text-cyan transition-colors">
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+              </div>
+            </>
+          )}
 
           {error && (
             <motion.p
@@ -192,7 +246,7 @@ export function LoginPage() {
             </motion.p>
           )}
 
-          {!ready && !checking && (
+          {!ready && !checking && !pendingToken && (
             <motion.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -204,7 +258,7 @@ export function LoginPage() {
 
           <motion.button
             type="submit"
-            disabled={!ready || loading || success}
+            disabled={(!pendingToken && !ready) || loading || success}
             whileTap={!loading && !success ? { scale: 0.97 } : {}}
             className={`w-full font-display font-semibold py-2.5 rounded tracking-wide transition-all duration-200 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
               success
@@ -246,9 +300,13 @@ export function LoginPage() {
                   </svg>
                   AUTENTICANDO...
                 </motion.span>
-              ) : !ready ? (
+              ) : !ready && !pendingToken ? (
                 <motion.span key="waiting" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   VERIFICANDO SISTEMA...
+                </motion.span>
+              ) : pendingToken ? (
+                <motion.span key="verify" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  VERIFICAR CÓDIGO
                 </motion.span>
               ) : (
                 <motion.span key="ready" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>

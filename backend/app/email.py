@@ -326,3 +326,73 @@ def send_password_reset_email(db: Session, user: User, token: str) -> None:
 </html>"""
 
     _send_email(cfg, user.email, "Restablece tu contraseña — Panel Soporte", html)
+
+
+def send_otp_email(db: Session, user: User, code: str) -> None:
+    """Envía el código de verificación en dos pasos al usuario."""
+    cfg = _smtp_config(db, user.id)
+    if cfg is None:
+        return
+
+    display_name = user.display_name or user.username
+
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codigo de verificacion</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0f1a;font-family:'Segoe UI',Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;background:#0d1724;border:1px solid #1e3a4a;">
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#0891b2 0%,#0e7490 100%);padding:32px 40px;text-align:center;">
+            <p style="margin:0 0 8px;font-size:28px;line-height:1;">&#9889;</p>
+            <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;">FARMACIA SABA</h1>
+            <p style="margin:6px 0 0;color:#c5f6fa;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Panel Soporte</p>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:40px;">
+            <p style="margin:0 0 24px;color:#94a3b8;font-size:14px;line-height:1.6;">
+              Hola <strong style="color:#e2e8f0;">{display_name}</strong>, usa el siguiente codigo para completar tu inicio de sesion:
+            </p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+              <tr>
+                <td align="center">
+                  <p style="display:inline-block;background:#0a1929;border:1px solid #1e3a4a;border-radius:10px;padding:16px 32px;color:#67e8f9;font-size:32px;font-weight:700;letter-spacing:8px;font-family:monospace;">
+                    {code}
+                  </p>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0;color:#64748b;font-size:12px;text-align:center;line-height:1.5;">
+              Este codigo es valido por <strong style="color:#94a3b8;">10 minutos</strong>.<br>
+              Si no intentaste iniciar sesion, ignora este correo y considera cambiar tu contraseña.
+            </p>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="padding:20px 40px;text-align:center;border-top:1px solid #1e3a4a;background:#091320;">
+            <p style="margin:0;color:#475569;font-size:11px;">
+              &copy; Farmacia Saba — Panel Soporte<br>
+              Este correo fue generado automaticamente. No respondas a esta direccion.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
+
+    _send_email(cfg, user.email, "Tu codigo de verificacion — Panel Soporte", html)

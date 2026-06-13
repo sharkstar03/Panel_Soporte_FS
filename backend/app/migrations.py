@@ -294,3 +294,20 @@ def run_migrations() -> None:
                 CREATE INDEX IF NOT EXISTS ix_passwordresettoken_user_id ON passwordresettoken(user_id);
                 CREATE INDEX IF NOT EXISTS ix_passwordresettoken_token ON passwordresettoken(token);
             """))
+
+        # Verificación en dos pasos por correo (2FA)
+        conn.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE;'))
+
+        if not inspector.has_table("emailotp"):
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS emailotp (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES "user"(id),
+                    code_hash VARCHAR NOT NULL,
+                    expires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                    used_at TIMESTAMP WITHOUT TIME ZONE,
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS ix_emailotp_user_id ON emailotp(user_id);
+            """))

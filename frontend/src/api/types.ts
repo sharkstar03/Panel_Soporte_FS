@@ -27,6 +27,7 @@ export interface User {
   avatar_key: string | null
   birthday: string | null
   theme: 'dark' | 'light'
+  two_factor_enabled: boolean
 }
 
 export interface ProfileUpdateIn {
@@ -34,6 +35,19 @@ export interface ProfileUpdateIn {
   birthday?: string | null
   theme?: 'dark' | 'light'
   email?: string | null
+  two_factor_enabled?: boolean
+}
+
+export interface LoginOut {
+  access_token?: string | null
+  token_type: string
+  two_factor_required: boolean
+  pending_token?: string | null
+}
+
+export interface VerifyOtpIn {
+  pending_token: string
+  code: string
 }
 
 export interface Permission {

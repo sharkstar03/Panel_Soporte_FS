@@ -41,13 +41,32 @@ def verify_password(plain: str, hashed: str) -> bool:
 def create_access_token(subject: str) -> str:
     now = datetime.now(timezone.utc)
     exp = now + timedelta(minutes=settings.jwt_expires_minutes)
-    payload = {"sub": subject, "iat": int(now.timestamp()), "exp": exp}
+    payload = {"sub": subject, "iat": int(now.timestamp()), "exp": exp, "scope": "access"}
+    return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+
+def create_2fa_pending_token(subject: str, expires_minutes: int = 10) -> str:
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(minutes=expires_minutes)
+    payload = {"sub": subject, "iat": int(now.timestamp()), "exp": exp, "scope": "2fa_pending"}
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
 
 def decode_token(token: str) -> Optional[str]:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        if payload.get("scope") != "access":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+
+def decode_2fa_pending_token(token: str) -> Optional[str]:
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        if payload.get("scope") != "2fa_pending":
+            return None
         return payload.get("sub")
     except JWTError:
         return None

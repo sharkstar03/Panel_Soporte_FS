@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 import time
 import uuid
@@ -5,6 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Lock
+from typing import Optional
 
 import filetype
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
@@ -14,12 +16,28 @@ from sqlmodel import Session, select
 from app.audit import log_event
 from app.config import settings
 from app.deps import get_current_user, get_db, get_user_permission_codes
-from app.email import send_password_reset_email, send_verification_email
+from app.email import send_otp_email, send_password_reset_email, send_verification_email
 from app.files import read_upload
-from app.models import EmailVerificationToken, PasswordResetToken, Role, SessionEventType, User, UserRoleLink
+from app.models import EmailOTP, EmailVerificationToken, PasswordResetToken, Role, SessionEventType, User, UserRoleLink
 from app.s3 import s3_client
-from app.schemas import ChangePasswordIn, ForgotPasswordIn, LoginIn, ProfileUpdateIn, ResetPasswordIn, TokenOut, UserOut
-from app.security import create_access_token, hash_password, password_policy_errors, verify_password
+from app.schemas import (
+    ChangePasswordIn,
+    ForgotPasswordIn,
+    LoginIn,
+    LoginOut,
+    ProfileUpdateIn,
+    ResetPasswordIn,
+    UserOut,
+    VerifyOtpIn,
+)
+from app.security import (
+    create_2fa_pending_token,
+    create_access_token,
+    decode_2fa_pending_token,
+    hash_password,
+    password_policy_errors,
+    verify_password,
+)
 
 _EMAIL_VERIFICATION_TTL = timedelta(hours=24)
 _EMAIL_VERIFICATION_COOLDOWN = timedelta(minutes=2)
@@ -27,6 +45,8 @@ _PASSWORD_RESET_TTL = timedelta(hours=1)
 _PASSWORD_RESET_COOLDOWN = timedelta(minutes=2)
 _FORGOT_PASSWORD_MAX_PER_IP = 10
 _FORGOT_PASSWORD_WINDOW_SECONDS = 300
+_OTP_TTL = timedelta(minutes=10)
+_OTP_MAX_ATTEMPTS = 5
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -85,22 +105,7 @@ def _reset_login_rate(limits: list[tuple[str, int]]) -> None:
             _login_attempts.pop(key, None)
 
 
-@router.post("/login", response_model=TokenOut)
-def login(payload: LoginIn, request: Request, db: Session = Depends(get_db)):
-    limits = _rate_limits(_client_ip(request), payload.username)
-    _check_login_rate(limits)
-    user = db.exec(select(User).where(User.username == payload.username)).first()
-    if not user or not user.active or not verify_password(payload.password, user.password_hash):
-        log_event(db, SessionEventType.login_failed, metadata={"username": payload.username})
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales inválidas")
-    _reset_login_rate(limits)
-    token = create_access_token(user.username)
-    log_event(db, SessionEventType.login_success, user_id=user.id)
-    return TokenOut(access_token=token)
-
-
-@router.get("/me", response_model=UserOut)
-def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def _user_out(db: Session, user: User) -> UserOut:
     roles = db.exec(
         select(Role.name)
         .join(UserRoleLink, UserRoleLink.role_id == Role.id)
@@ -122,7 +127,81 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
         avatar_key=user.avatar_key,
         birthday=user.birthday,
         theme=user.theme,
+        two_factor_enabled=user.two_factor_enabled,
     )
+
+
+@router.post("/login", response_model=LoginOut)
+def login(payload: LoginIn, request: Request, db: Session = Depends(get_db)):
+    limits = _rate_limits(_client_ip(request), payload.username)
+    _check_login_rate(limits)
+    user = db.exec(select(User).where(User.username == payload.username)).first()
+    if not user or not user.active or not verify_password(payload.password, user.password_hash):
+        log_event(db, SessionEventType.login_failed, metadata={"username": payload.username})
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales inválidas")
+    _reset_login_rate(limits)
+
+    if user.two_factor_enabled and user.email_verified and user.email:
+        now = datetime.utcnow()
+        code = f"{secrets.randbelow(1000000):06d}"
+        record = EmailOTP(
+            user_id=user.id,
+            code_hash=hashlib.sha256(code.encode()).hexdigest(),
+            expires_at=now + _OTP_TTL,
+        )
+        db.add(record)
+        db.commit()
+        send_otp_email(db, user, code)
+        log_event(db, SessionEventType.two_factor_code_sent, user_id=user.id)
+        return LoginOut(two_factor_required=True, pending_token=create_2fa_pending_token(user.username))
+
+    token = create_access_token(user.username)
+    log_event(db, SessionEventType.login_success, user_id=user.id)
+    return LoginOut(access_token=token)
+
+
+@router.post("/login/verify-otp", response_model=LoginOut)
+def verify_otp(payload: VerifyOtpIn, db: Session = Depends(get_db)):
+    username = decode_2fa_pending_token(payload.pending_token)
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
+
+    user = db.exec(select(User).where(User.username == username)).first()
+    if not user or not user.active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
+
+    record = db.exec(
+        select(EmailOTP)
+        .where(EmailOTP.user_id == user.id, EmailOTP.used_at == None)  # noqa: E711
+        .order_by(EmailOTP.created_at.desc())
+    ).first()
+    if not record:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Código inválido o expirado")
+    if datetime.utcnow() > record.expires_at:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El código ha expirado")
+    if record.attempts >= _OTP_MAX_ATTEMPTS:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Demasiados intentos. Solicita un nuevo código.")
+
+    if hashlib.sha256(payload.code.encode()).hexdigest() != record.code_hash:
+        record.attempts += 1
+        db.add(record)
+        db.commit()
+        log_event(db, SessionEventType.two_factor_failed, user_id=user.id)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Código incorrecto")
+
+    record.used_at = datetime.utcnow()
+    db.add(record)
+    db.commit()
+
+    token = create_access_token(user.username)
+    log_event(db, SessionEventType.two_factor_verified, user_id=user.id)
+    log_event(db, SessionEventType.login_success, user_id=user.id)
+    return LoginOut(access_token=token)
+
+
+@router.get("/me", response_model=UserOut)
+def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _user_out(db, user)
 
 
 @router.put("/profile", response_model=UserOut)
@@ -153,35 +232,26 @@ def update_profile(
         user.email_verified = False
         changes["email"] = payload.email
 
+    two_factor_event: Optional[SessionEventType] = None
+    if payload.two_factor_enabled is not None and payload.two_factor_enabled != user.two_factor_enabled:
+        if payload.two_factor_enabled and not user.email_verified:
+            raise HTTPException(status_code=400, detail="Debes verificar tu correo antes de activar la verificación en dos pasos")
+        user.two_factor_enabled = payload.two_factor_enabled
+        changes["two_factor_enabled"] = payload.two_factor_enabled
+        two_factor_event = (
+            SessionEventType.two_factor_enabled if payload.two_factor_enabled else SessionEventType.two_factor_disabled
+        )
+
     if changes:
         db.add(user)
         db.commit()
         db.refresh(user)
         log_event(db, SessionEventType.user_profile_updated, user_id=user.id,
                   metadata={"target_user_id": user.id, **changes})
+        if two_factor_event is not None:
+            log_event(db, two_factor_event, user_id=user.id, metadata={"target_user_id": user.id})
 
-    roles = db.exec(
-        select(Role.name)
-        .join(UserRoleLink, UserRoleLink.role_id == Role.id)
-        .where(UserRoleLink.user_id == user.id)
-        .order_by(Role.name)
-    ).all()
-    permissions = sorted([p for p in get_user_permission_codes(db, user) if p != "*"])
-    return UserOut(
-        id=user.id,
-        username=user.username,
-        role=user.role,
-        active=user.active,
-        created_at=user.created_at,
-        roles=list(roles),
-        permissions=permissions,
-        email=user.email,
-        email_verified=user.email_verified,
-        display_name=user.display_name,
-        avatar_key=user.avatar_key,
-        birthday=user.birthday,
-        theme=user.theme,
-    )
+    return _user_out(db, user)
 
 
 @router.post("/avatar", response_model=UserOut)
@@ -232,28 +302,7 @@ def upload_avatar(
     db.refresh(user)
     log_event(db, SessionEventType.user_avatar_updated, user_id=user.id, metadata={"target_user_id": user.id})
 
-    roles = db.exec(
-        select(Role.name)
-        .join(UserRoleLink, UserRoleLink.role_id == Role.id)
-        .where(UserRoleLink.user_id == user.id)
-        .order_by(Role.name)
-    ).all()
-    permissions = sorted([p for p in get_user_permission_codes(db, user) if p != "*"])
-    return UserOut(
-        id=user.id,
-        username=user.username,
-        role=user.role,
-        active=user.active,
-        created_at=user.created_at,
-        roles=list(roles),
-        permissions=permissions,
-        email=user.email,
-        email_verified=user.email_verified,
-        display_name=user.display_name,
-        avatar_key=user.avatar_key,
-        birthday=user.birthday,
-        theme=user.theme,
-    )
+    return _user_out(db, user)
 
 
 @router.get("/avatar/{user_id}")

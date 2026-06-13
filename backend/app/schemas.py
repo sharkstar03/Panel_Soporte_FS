@@ -15,6 +15,18 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
 
 
+class LoginOut(BaseModel):
+    access_token: Optional[str] = None
+    token_type: str = "bearer"
+    two_factor_required: bool = False
+    pending_token: Optional[str] = None
+
+
+class VerifyOtpIn(BaseModel):
+    pending_token: str
+    code: str
+
+
 class LoginIn(BaseModel):
     username: str
     password: str
@@ -34,6 +46,7 @@ class UserOut(BaseModel):
     avatar_key: Optional[str] = None
     birthday: Optional[date] = None
     theme: str = "dark"
+    two_factor_enabled: bool = False
 
 
 class ProfileUpdateIn(BaseModel):
@@ -41,6 +54,7 @@ class ProfileUpdateIn(BaseModel):
     birthday: Optional[date] = None
     theme: Optional[str] = None
     email: Optional[str] = None
+    two_factor_enabled: Optional[bool] = None
 
     @field_validator("theme")
     @classmethod

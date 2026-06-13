@@ -25,7 +25,9 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: (username: string, password: string) =>
-    api.post<{ access_token: string }>('/auth/login', { username, password }),
+    api.post<import('./types').LoginOut>('/auth/login', { username, password }),
+  verifyOtp: (pending_token: string, code: string) =>
+    api.post<import('./types').LoginOut>('/auth/login/verify-otp', { pending_token, code }),
   me: () => api.get<import('./types').User>('/auth/me'),
   changePassword: (current_password: string, new_password: string) =>
     api.post<{ ok: boolean }>('/auth/change-password', { current_password, new_password }),

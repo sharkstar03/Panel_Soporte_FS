@@ -26,6 +26,7 @@ class User(SQLModel, table=True):
     avatar_key: Optional[str] = None
     birthday: Optional[date] = None
     theme: str = Field(default="dark")
+    two_factor_enabled: bool = Field(default=False)
 
 
 class EmailVerificationToken(SQLModel, table=True):
@@ -43,6 +44,16 @@ class PasswordResetToken(SQLModel, table=True):
     token: str = Field(index=True, unique=True)
     expires_at: datetime
     used_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EmailOTP(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    code_hash: str
+    expires_at: datetime
+    used_at: Optional[datetime] = None
+    attempts: int = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -178,6 +189,11 @@ class SessionEventType(str, Enum):
     email_verified = "EMAIL_VERIFIED"
     password_reset_requested = "PASSWORD_RESET_REQUESTED"
     password_reset_completed = "PASSWORD_RESET_COMPLETED"
+    two_factor_enabled = "TWO_FACTOR_ENABLED"
+    two_factor_disabled = "TWO_FACTOR_DISABLED"
+    two_factor_code_sent = "TWO_FACTOR_CODE_SENT"
+    two_factor_verified = "TWO_FACTOR_VERIFIED"
+    two_factor_failed = "TWO_FACTOR_FAILED"
 
 
 class SessionEvent(SQLModel, table=True):

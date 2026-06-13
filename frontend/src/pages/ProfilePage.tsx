@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Camera, User as UserIcon, Palette, MailCheck } from 'lucide-react'
+import { Camera, User as UserIcon, Palette, MailCheck, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { authApi } from '../api/client'
 import { PageHeader } from '../components/PageHeader'
@@ -54,6 +54,15 @@ export function ProfilePage() {
       toast.success('Tema actualizado')
     },
     onError: (e: any) => toast.error(e?.response?.data?.detail ?? 'Error al cambiar el tema'),
+  })
+
+  const twoFactorMutation = useMutation({
+    mutationFn: (two_factor_enabled: boolean) => authApi.updateProfile({ two_factor_enabled }),
+    onSuccess: (r) => {
+      setUser(r.data)
+      toast.success(r.data.two_factor_enabled ? 'Verificación en dos pasos activada' : 'Verificación en dos pasos desactivada')
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.detail ?? 'Error al cambiar la verificación en dos pasos'),
   })
 
   if (!user) return null
@@ -161,6 +170,40 @@ export function ProfilePage() {
             <option value="light">Claro</option>
           </Select>
         </FormField>
+      </div>
+
+      {/* Seguridad */}
+      <div className="bg-panel border border-border rounded-lg p-6 mt-6 space-y-4">
+        <div className="flex items-center gap-2 text-text-primary font-display font-semibold">
+          <ShieldCheck size={16} className="text-cyan" />
+          Seguridad
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-text-primary">Verificación en dos pasos por correo</p>
+            <p className="text-xs text-text-muted mt-0.5">
+              {user.email_verified
+                ? 'Al iniciar sesión, te enviaremos un código de un solo uso a tu correo.'
+                : 'Debes verificar tu correo electrónico antes de activar esta opción.'}
+            </p>
+          </div>
+          <button
+            onClick={() => twoFactorMutation.mutate(!user.two_factor_enabled)}
+            disabled={twoFactorMutation.isPending || (!user.email_verified && !user.two_factor_enabled)}
+            role="switch"
+            aria-checked={user.two_factor_enabled}
+            title={user.two_factor_enabled ? 'Desactivar verificación en dos pasos' : 'Activar verificación en dos pasos'}
+            className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+              user.two_factor_enabled ? 'bg-cyan/20 border-cyan/40' : 'bg-elevated border-border'
+            }`}
+          >
+            <span
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-panel shadow transform transition-transform duration-200 ${
+                user.two_factor_enabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   )
