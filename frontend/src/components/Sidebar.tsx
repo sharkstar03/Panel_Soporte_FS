@@ -3,6 +3,7 @@ import { Monitor, ClipboardList, BookOpen, Link2, Users, LogOut, LayoutDashboard
 import { useAuth } from '../context/AuthContext'
 import { motion } from 'framer-motion'
 import { ThemeToggle } from './ThemeToggle'
+import { Avatar } from './Avatar'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', perm: 'dashboard.view' },
@@ -106,15 +107,17 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Tema</span>
           <ThemeToggle />
         </div>
-        <div className="mb-2 flex items-center gap-3 rounded border border-border bg-elevated px-3 py-2">
-          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded border border-cyan/30 bg-cyan/20">
-            <span className="font-mono text-xs font-bold text-cyan">{user?.username?.[0]?.toUpperCase()}</span>
-          </div>
+        <NavLink
+          to="/profile"
+          onClick={onClose}
+          className="mb-2 flex items-center gap-3 rounded border border-border bg-elevated px-3 py-2 transition-colors hover:border-cyan/30 hover:bg-cyan/5"
+        >
+          {user && <Avatar userId={user.id} avatarKey={user.avatar_key} name={user.display_name || user.username} size={28} />}
           <div className="min-w-0 flex-1">
-            <p className="truncate font-sans text-xs text-text-primary">{user?.username}</p>
+            <p className="truncate font-sans text-xs text-text-primary">{user?.display_name || user?.username}</p>
             <p className="text-[11px] font-sans font-medium uppercase tracking-wide text-text-muted">{user?.role}</p>
           </div>
-        </div>
+        </NavLink>
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded border border-transparent px-3 py-2 font-sans text-sm text-text-secondary transition-all duration-150 hover:border-red-op/20 hover:bg-red-op/5 hover:text-red-op"

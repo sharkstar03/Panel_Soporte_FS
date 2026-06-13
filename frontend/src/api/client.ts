@@ -29,6 +29,16 @@ export const authApi = {
   me: () => api.get<import('./types').User>('/auth/me'),
   changePassword: (current_password: string, new_password: string) =>
     api.post<{ ok: boolean }>('/auth/change-password', { current_password, new_password }),
+  updateProfile: (data: import('./types').ProfileUpdateIn) =>
+    api.put<import('./types').User>('/auth/profile', data),
+  uploadAvatar: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post<import('./types').User>('/auth/avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  avatarUrl: (userId: number) => `/api/auth/avatar/${userId}`,
 }
 
 export const branchesApi = {

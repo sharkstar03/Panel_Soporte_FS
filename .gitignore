@@ -25,3 +25,5 @@ backend/storage/
 # Sistema
 .DS_Store
 *.log
+data.sql
+.mcp.json

@@ -251,3 +251,16 @@ def run_migrations() -> None:
             ALTER COLUMN type TYPE VARCHAR
             USING type::text;
         """))
+
+        # Perfil de usuario: correo (para recuperación de contraseña, 2FA y
+        # verificación), nombre para mostrar, avatar, cumpleaños y tema.
+        conn.execute(text("""
+            ALTER TABLE "user"
+            ADD COLUMN IF NOT EXISTS email VARCHAR,
+            ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+            ADD COLUMN IF NOT EXISTS display_name VARCHAR,
+            ADD COLUMN IF NOT EXISTS avatar_key VARCHAR,
+            ADD COLUMN IF NOT EXISTS birthday DATE,
+            ADD COLUMN IF NOT EXISTS theme VARCHAR NOT NULL DEFAULT 'dark';
+        """))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_user_email ON "user"(email);'))

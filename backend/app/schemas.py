@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Optional
 
 from pydantic import BaseModel, field_validator
@@ -28,6 +28,43 @@ class UserOut(BaseModel):
     created_at: datetime
     roles: list[str] = []
     permissions: list[str] = []
+    email: Optional[str] = None
+    email_verified: bool = False
+    display_name: Optional[str] = None
+    avatar_key: Optional[str] = None
+    birthday: Optional[date] = None
+    theme: str = "dark"
+
+
+class ProfileUpdateIn(BaseModel):
+    display_name: Optional[str] = None
+    birthday: Optional[date] = None
+    theme: Optional[str] = None
+    email: Optional[str] = None
+
+    @field_validator("theme")
+    @classmethod
+    def _validate_theme(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("dark", "light"):
+            raise ValueError("Tema inválido")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v != "" and not _EMAIL_RE.match(v):
+            raise ValueError("Correo electrónico inválido")
+        return v or None
+
+    @field_validator("display_name")
+    @classmethod
+    def _validate_display_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if len(v) > 80:
+                raise ValueError("El nombre es demasiado largo")
+            return v or None
+        return v
 
 
 class SupervisorOut(BaseModel):

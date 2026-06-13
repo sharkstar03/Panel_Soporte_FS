@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { authApi } from '../api/client'
 import type { User } from '../api/types'
+import { setTheme as applyAndStoreTheme, type Theme } from '../theme'
 
 interface AuthCtx {
   user: User | null
@@ -9,6 +10,8 @@ interface AuthCtx {
   can: (permission: string) => boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => void
+  setUser: (user: User) => void
+  setUserTheme: (theme: Theme) => void
 }
 
 const Ctx = createContext<AuthCtx>(null!)
@@ -21,7 +24,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!token) { setLoading(false); return }
     authApi.me()
-      .then((r) => setUser(r.data))
+      .then((r) => {
+        setUser(r.data)
+        applyAndStoreTheme(r.data.theme)
+      })
       .catch(() => { localStorage.removeItem('token'); setToken(null) })
       .finally(() => setLoading(false))
   }, [token])
@@ -33,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(t)
     const me = await authApi.me()
     setUser(me.data)
+    applyAndStoreTheme(me.data.theme)
   }
 
   const logout = () => {
@@ -47,7 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user.permissions?.includes(permission) ?? false
   }
 
-  return <Ctx.Provider value={{ user, token, loading, can, login, logout }}>{children}</Ctx.Provider>
+  const setUserTheme = (theme: Theme) => {
+    applyAndStoreTheme(theme)
+    if (!user) return
+    setUser({ ...user, theme })
+    authApi.updateProfile({ theme }).catch(() => { /* preferencia local sigue aplicada */ })
+  }
+
+  return <Ctx.Provider value={{ user, token, loading, can, login, logout, setUser, setUserTheme }}>{children}</Ctx.Provider>
 }
 
 export const useAuth = () => useContext(Ctx)

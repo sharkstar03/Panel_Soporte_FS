@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Optional
 
@@ -20,6 +20,12 @@ class User(SQLModel, table=True):
     role: UserRole = Field(default=UserRole.tecnico)
     active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    email: Optional[str] = Field(default=None, index=True)
+    email_verified: bool = Field(default=False)
+    display_name: Optional[str] = None
+    avatar_key: Optional[str] = None
+    birthday: Optional[date] = None
+    theme: str = Field(default="dark")
 
 
 class UserSmtpConfig(SQLModel, table=True):
@@ -148,6 +154,8 @@ class SessionEventType(str, Enum):
     document_approved = "DOCUMENT_APPROVED"
     document_rejected = "DOCUMENT_REJECTED"
     document_downloaded = "DOCUMENT_DOWNLOADED"
+    user_profile_updated = "USER_PROFILE_UPDATED"
+    user_avatar_updated = "USER_AVATAR_UPDATED"
 
 
 class SessionEvent(SQLModel, table=True):

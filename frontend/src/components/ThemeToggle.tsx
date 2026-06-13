@@ -1,15 +1,17 @@
-import { useState } from 'react'
 import { Sun, Moon } from 'lucide-react'
-import { getTheme, setTheme, type Theme } from '../theme'
+import { getTheme, type Theme } from '../theme'
+import { useAuth } from '../context/AuthContext'
 
 export function ThemeToggle({ className = '' }: { className?: string }) {
-  const [theme, setT] = useState<Theme>(getTheme())
+  const { user, setUserTheme } = useAuth()
+  const theme: Theme = user?.theme ?? getTheme()
   const isLight = theme === 'light'
+
   const toggle = () => {
     const next: Theme = isLight ? 'dark' : 'light'
-    setT(next)
-    setTheme(next)
+    setUserTheme(next)
   }
+
   return (
     <button
       onClick={toggle}

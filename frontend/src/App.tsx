@@ -16,6 +16,7 @@ import { DocumentsPage } from './pages/DocumentsPage'
 import { NewDocumentPage } from './pages/NewDocumentPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { ApprovalPage } from './pages/ApprovalPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { PageLoader } from './components/ui/Spinner'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="documents/new" element={<NewDocumentPage />} />
         <Route path="documents/:id" element={<DocumentDetailPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="/approve/:token" element={<ApprovalPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

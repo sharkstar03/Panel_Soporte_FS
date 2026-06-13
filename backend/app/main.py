@@ -1,6 +1,7 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+import requests
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -11,6 +12,7 @@ from app.config import settings
 from app.db import init_db, engine
 from app.migrations import run_migrations
 from app.models import SessionEventType, User, UserRole
+from app.placeft.scraper import _api_base, _portal_base
 from app.routers import admin, approve, assets, attachments, auth, branches, documents, document_templates, kb, links, otp, passwords, printers, rbac, security_keys, sessions, users, audit
 from app.routers import settings as settings_router
 from app.s3 import ensure_bucket, s3_client
@@ -115,14 +117,37 @@ def _check_storage() -> bool:
         return False
 
 
+def _check_dgi() -> bool:
+    """Verifica que la API de la DGI/PlaceFT responda (sin requerir credenciales)."""
+    try:
+        r = requests.head(f"{_api_base()}/", timeout=5, allow_redirects=True)
+        if r.status_code >= 500:
+            return False
+        return True
+    except Exception:
+        pass
+
+    try:
+        r = requests.head(f"{_portal_base()}/Contribuyente/inicio-sesion", timeout=5, allow_redirects=True)
+        if r.status_code >= 500:
+            return False
+        return True
+    except Exception:
+        return False
+
+
 @app.get("/health")
 def health():
     db_ok = _check_db()
     storage_ok = _check_storage()
-    status = "ok" if db_ok and storage_ok else "fail"
+    dgi_ok = _check_dgi()
+    status = "ok" if db_ok and storage_ok and dgi_ok else "fail"
     code = 200 if status == "ok" else 503
     return Response(
         status_code=code,
         media_type="application/json",
-        content=f'{{"status":"{status}","db":{str(db_ok).lower()},"storage":{str(storage_ok).lower()},"version":"0.1.0"}}',
+        content=(
+            f'{{"status":"{status}","db":{str(db_ok).lower()},"storage":{str(storage_ok).lower()},'
+            f'"dgi":{str(dgi_ok).lower()},"version":"0.1.0"}}'
+        ),
     )

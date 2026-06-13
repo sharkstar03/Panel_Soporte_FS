@@ -21,6 +21,19 @@ export interface User {
   created_at: string
   roles: string[]
   permissions: string[]
+  email: string | null
+  email_verified: boolean
+  display_name: string | null
+  avatar_key: string | null
+  birthday: string | null
+  theme: 'dark' | 'light'
+}
+
+export interface ProfileUpdateIn {
+  display_name?: string | null
+  birthday?: string | null
+  theme?: 'dark' | 'light'
+  email?: string | null
 }
 
 export interface Permission {
