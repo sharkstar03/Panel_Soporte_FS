@@ -14,15 +14,19 @@ from sqlmodel import Session, select
 from app.audit import log_event
 from app.config import settings
 from app.deps import get_current_user, get_db, get_user_permission_codes
-from app.email import send_verification_email
+from app.email import send_password_reset_email, send_verification_email
 from app.files import read_upload
-from app.models import EmailVerificationToken, Role, SessionEventType, User, UserRoleLink
+from app.models import EmailVerificationToken, PasswordResetToken, Role, SessionEventType, User, UserRoleLink
 from app.s3 import s3_client
-from app.schemas import ChangePasswordIn, LoginIn, ProfileUpdateIn, TokenOut, UserOut
+from app.schemas import ChangePasswordIn, ForgotPasswordIn, LoginIn, ProfileUpdateIn, ResetPasswordIn, TokenOut, UserOut
 from app.security import create_access_token, hash_password, password_policy_errors, verify_password
 
 _EMAIL_VERIFICATION_TTL = timedelta(hours=24)
 _EMAIL_VERIFICATION_COOLDOWN = timedelta(minutes=2)
+_PASSWORD_RESET_TTL = timedelta(hours=1)
+_PASSWORD_RESET_COOLDOWN = timedelta(minutes=2)
+_FORGOT_PASSWORD_MAX_PER_IP = 10
+_FORGOT_PASSWORD_WINDOW_SECONDS = 300
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -352,4 +356,66 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     db.add(record)
     db.commit()
     log_event(db, SessionEventType.email_verified, user_id=user.id, metadata={"target_user_id": user.id})
+    return {"ok": True}
+
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordIn, request: Request, db: Session = Depends(get_db)):
+    ip = _client_ip(request)
+    _check_login_rate([(f"forgot:{ip}", _FORGOT_PASSWORD_MAX_PER_IP)])
+
+    # Respuesta genérica siempre, para no revelar si el correo existe.
+    generic = {"ok": True, "detail": "Si el correo existe, se enviará un enlace de recuperación."}
+
+    user = db.exec(select(User).where(User.email == payload.email, User.active == True)).first()  # noqa: E712
+    if not user:
+        return generic
+
+    now = datetime.utcnow()
+    last = db.exec(
+        select(PasswordResetToken)
+        .where(PasswordResetToken.user_id == user.id)
+        .order_by(PasswordResetToken.created_at.desc())
+    ).first()
+    if last and now - last.created_at < _PASSWORD_RESET_COOLDOWN:
+        return generic
+
+    token = secrets.token_urlsafe(32)
+    record = PasswordResetToken(
+        user_id=user.id,
+        token=token,
+        expires_at=now + _PASSWORD_RESET_TTL,
+    )
+    db.add(record)
+    db.commit()
+
+    send_password_reset_email(db, user, token)
+    log_event(db, SessionEventType.password_reset_requested, user_id=user.id, metadata={"target_user_id": user.id})
+    return generic
+
+
+@router.post("/reset-password/{token}")
+def reset_password(token: str, payload: ResetPasswordIn, db: Session = Depends(get_db)):
+    record = db.exec(select(PasswordResetToken).where(PasswordResetToken.token == token)).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Token inválido")
+    if record.used_at is not None:
+        raise HTTPException(status_code=400, detail="Este enlace ya fue utilizado")
+    if datetime.utcnow() > record.expires_at:
+        raise HTTPException(status_code=400, detail="Este enlace ha expirado")
+
+    errors = password_policy_errors(payload.new_password)
+    if errors:
+        raise HTTPException(status_code=422, detail="Contraseña insegura: " + " ".join(errors))
+
+    user = db.get(User, record.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user.password_hash = hash_password(payload.new_password)
+    record.used_at = datetime.utcnow()
+    db.add(user)
+    db.add(record)
+    db.commit()
+    log_event(db, SessionEventType.password_reset_completed, user_id=user.id, metadata={"target_user_id": user.id})
     return {"ok": True}

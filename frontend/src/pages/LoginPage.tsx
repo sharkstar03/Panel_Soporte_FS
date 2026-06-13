@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../api/client'
@@ -175,6 +175,11 @@ export function LoginPage() {
               disabled={!ready || loading || success}
               className="w-full bg-elevated border border-border rounded px-3 py-2.5 text-sm text-text-primary font-mono placeholder:text-text-muted focus:outline-none focus:border-cyan/60 focus:ring-1 focus:ring-cyan/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             />
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-[11px] text-text-muted hover:text-cyan transition-colors">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </div>
 
           {error && (

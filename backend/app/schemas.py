@@ -93,6 +93,22 @@ class ChangePasswordIn(BaseModel):
     new_password: str
 
 
+class ForgotPasswordIn(BaseModel):
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, v: str) -> str:
+        email = (v or "").strip().lower()
+        if not email or not _EMAIL_RE.match(email):
+            raise ValueError("Correo electrónico inválido")
+        return email
+
+
+class ResetPasswordIn(BaseModel):
+    new_password: str
+
+
 class UserSmtpOut(BaseModel):
     user_id: int
     smtp_host: str

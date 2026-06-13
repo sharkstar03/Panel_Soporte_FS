@@ -37,6 +37,15 @@ class EmailVerificationToken(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class PasswordResetToken(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    token: str = Field(index=True, unique=True)
+    expires_at: datetime
+    used_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class UserSmtpConfig(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", index=True, unique=True)
@@ -167,6 +176,8 @@ class SessionEventType(str, Enum):
     user_avatar_updated = "USER_AVATAR_UPDATED"
     email_verification_sent = "EMAIL_VERIFICATION_SENT"
     email_verified = "EMAIL_VERIFIED"
+    password_reset_requested = "PASSWORD_RESET_REQUESTED"
+    password_reset_completed = "PASSWORD_RESET_COMPLETED"
 
 
 class SessionEvent(SQLModel, table=True):

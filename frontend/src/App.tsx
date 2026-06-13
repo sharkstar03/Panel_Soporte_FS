@@ -17,6 +17,8 @@ import { NewDocumentPage } from './pages/NewDocumentPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { ApprovalPage } from './pages/ApprovalPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { PageLoader } from './components/ui/Spinner'
 
@@ -38,6 +40,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
         <Route index element={<DashboardPage />} />
         <Route path="assets" element={<AssetsPage />} />

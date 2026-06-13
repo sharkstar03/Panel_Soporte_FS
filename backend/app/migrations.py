@@ -279,3 +279,18 @@ def run_migrations() -> None:
                 CREATE INDEX IF NOT EXISTS ix_emailverificationtoken_user_id ON emailverificationtoken(user_id);
                 CREATE INDEX IF NOT EXISTS ix_emailverificationtoken_token ON emailverificationtoken(token);
             """))
+
+        # Tokens de recuperación de contraseña
+        if not inspector.has_table("passwordresettoken"):
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS passwordresettoken (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES "user"(id),
+                    token VARCHAR NOT NULL UNIQUE,
+                    expires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                    used_at TIMESTAMP WITHOUT TIME ZONE,
+                    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS ix_passwordresettoken_user_id ON passwordresettoken(user_id);
+                CREATE INDEX IF NOT EXISTS ix_passwordresettoken_token ON passwordresettoken(token);
+            """))
