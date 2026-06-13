@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Camera, User as UserIcon, Palette } from 'lucide-react'
+import { Camera, User as UserIcon, Palette, MailCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { authApi } from '../api/client'
 import { PageHeader } from '../components/PageHeader'
@@ -39,6 +39,12 @@ export function ProfilePage() {
       toast.success('Foto de perfil actualizada')
     },
     onError: (e: any) => toast.error(e?.response?.data?.detail ?? 'Error al subir la imagen'),
+  })
+
+  const verifyMutation = useMutation({
+    mutationFn: () => authApi.sendEmailVerification(),
+    onSuccess: (r) => toast.success(r.data?.detail || 'Correo de verificación enviado'),
+    onError: (e: any) => toast.error(e?.response?.data?.detail ?? 'Error al enviar el correo de verificación'),
   })
 
   const themeMutation = useMutation({
@@ -107,9 +113,22 @@ export function ProfilePage() {
                 placeholder="correo@empresa.com"
               />
               {user.email && (
-                <Badge variant={user.email_verified ? 'green' : 'amber'} dot>
-                  {user.email_verified ? 'Verificado' : 'No verificado'}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={user.email_verified ? 'green' : 'amber'} dot>
+                    {user.email_verified ? 'Verificado' : 'No verificado'}
+                  </Badge>
+                  {!user.email_verified && (
+                    <button
+                      type="button"
+                      onClick={() => verifyMutation.mutate()}
+                      disabled={verifyMutation.isPending}
+                      className="inline-flex items-center gap-1 text-xs text-cyan hover:underline disabled:opacity-50"
+                    >
+                      <MailCheck size={12} />
+                      {verifyMutation.isPending ? 'Enviando...' : 'Verificar correo'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </FormField>

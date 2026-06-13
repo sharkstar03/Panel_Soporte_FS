@@ -1,13 +1,63 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from typing import Optional
 
 from sqlmodel import Session
 from sqlmodel import select
 
 from app.crypto import decrypt_value
-from app.models import UserSmtpConfig
+from app.models import User, UserSmtpConfig
 from app.settings_helper import get_setting
+
+
+def _smtp_config(db: Session, user_id: int) -> Optional[dict]:
+    """Resuelve la configuración SMTP a usar para un usuario.
+
+    Usa la configuración personal del usuario si está definida (tiene host),
+    y cae a la configuración general del sistema en caso contrario. Devuelve
+    ``None`` si no hay host configurado (SMTP no disponible).
+    """
+    cfg = db.exec(select(UserSmtpConfig).where(UserSmtpConfig.user_id == user_id)).first()
+
+    smtp_host = cfg.smtp_host if cfg and cfg.smtp_host else get_setting(db, "smtp_host", "")
+    if not smtp_host:
+        return None
+
+    smtp_port = int(cfg.smtp_port) if cfg and cfg.smtp_host else int(get_setting(db, "smtp_port", 587))
+    smtp_user = cfg.smtp_username if cfg and cfg.smtp_host else get_setting(db, "smtp_username", "")
+    smtp_pass = decrypt_value(cfg.smtp_password_enc) if cfg and cfg.smtp_host and cfg.smtp_password_enc else get_setting(db, "smtp_password", "")
+    smtp_from = (cfg.smtp_from_email or smtp_user) if cfg and cfg.smtp_host else (get_setting(db, "smtp_from_email", "") or smtp_user)
+    smtp_tls = bool(cfg.smtp_tls) if cfg and cfg.smtp_host else bool(get_setting(db, "smtp_tls", True))
+
+    return {
+        "host": smtp_host,
+        "port": smtp_port,
+        "user": smtp_user,
+        "pass": smtp_pass,
+        "from": smtp_from,
+        "tls": smtp_tls,
+    }
+
+
+def _send_email(cfg: dict, to_email: str, subject: str, html: str) -> None:
+    """Envía un correo HTML. Falla en silencio si SMTP no responde."""
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = cfg["from"]
+    msg["To"] = to_email
+    msg.attach(MIMEText(html, "html"))
+
+    try:
+        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=10) as server:
+            if cfg["tls"]:
+                server.starttls()
+            if cfg["user"] and cfg["pass"]:
+                server.login(cfg["user"], cfg["pass"])
+            server.sendmail(cfg["from"], [to_email], msg.as_string())
+    except Exception:
+        pass
+
 
 TYPE_LABELS = {
     "entrega_equipo": "Entrega de Equipo",
@@ -34,17 +84,10 @@ def send_approval_email(
     token: str,
 ) -> None:
     """Send approval request email. Silently skips if SMTP not configured."""
-    cfg = db.exec(select(UserSmtpConfig).where(UserSmtpConfig.user_id == creator_user_id)).first()
-
-    smtp_host = cfg.smtp_host if cfg and cfg.smtp_host else get_setting(db, "smtp_host", "")
-    if not smtp_host:
+    cfg = _smtp_config(db, creator_user_id)
+    if cfg is None:
         return
 
-    smtp_port = int(cfg.smtp_port) if cfg and cfg.smtp_host else int(get_setting(db, "smtp_port", 587))
-    smtp_user = cfg.smtp_username if cfg and cfg.smtp_host else get_setting(db, "smtp_username", "")
-    smtp_pass = decrypt_value(cfg.smtp_password_enc) if cfg and cfg.smtp_host and cfg.smtp_password_enc else get_setting(db, "smtp_password", "")
-    smtp_from = (cfg.smtp_from_email or smtp_user) if cfg and cfg.smtp_host else (get_setting(db, "smtp_from_email", "") or smtp_user)
-    smtp_tls = bool(cfg.smtp_tls) if cfg and cfg.smtp_host else bool(get_setting(db, "smtp_tls", True))
     public_url = get_setting(db, "app_public_url", "http://localhost:3000").rstrip("/")
     approval_url = f"{public_url}/approve/{token}"
     type_label = TYPE_LABELS.get(document_type, document_type)
@@ -126,18 +169,82 @@ def send_approval_email(
 </body>
 </html>"""
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"Solicitud de aprobacion — {type_label}"
-    msg["From"] = smtp_from
-    msg["To"] = approver_email
-    msg.attach(MIMEText(html, "html"))
+    _send_email(cfg, approver_email, f"Solicitud de aprobacion — {type_label}", html)
 
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
-            if smtp_tls:
-                server.starttls()
-            if smtp_user and smtp_pass:
-                server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_from, [approver_email], msg.as_string())
-    except Exception:
-        pass
+
+def send_verification_email(db: Session, user: User, token: str) -> None:
+    """Envía el correo de verificación de dirección de email al usuario."""
+    cfg = _smtp_config(db, user.id)
+    if cfg is None:
+        return
+
+    public_url = get_setting(db, "app_public_url", "http://localhost:3000").rstrip("/")
+    verify_url = f"{public_url}/verify-email/{token}"
+    display_name = user.display_name or user.username
+
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verifica tu correo</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0f1a;font-family:'Segoe UI',Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;background:#0d1724;border:1px solid #1e3a4a;">
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#0891b2 0%,#0e7490 100%);padding:32px 40px;text-align:center;">
+            <p style="margin:0 0 8px;font-size:28px;line-height:1;">&#9889;</p>
+            <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;">FARMACIA SABA</h1>
+            <p style="margin:6px 0 0;color:#c5f6fa;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Panel Soporte</p>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:40px;">
+            <p style="margin:0 0 24px;color:#94a3b8;font-size:14px;line-height:1.6;">
+              Hola <strong style="color:#e2e8f0;">{display_name}</strong>, confirma que esta es tu direccion de correo para activar las notificaciones de tu cuenta.
+            </p>
+
+            <!-- CTA Button -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+              <tr>
+                <td align="center">
+                  <a href="{verify_url}" style="display:inline-block;background:linear-gradient(135deg,#0891b2 0%,#0e7490 100%);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:0.5px;box-shadow:0 4px 16px rgba(8,145,178,0.35);">
+                    Verificar mi correo &rarr;
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0 0 12px;color:#64748b;font-size:12px;text-align:center;line-height:1.5;">
+              Este enlace es valido por <strong style="color:#94a3b8;">24 horas</strong>.<br>
+              Si no solicitaste esto, puedes ignorar este correo.
+            </p>
+
+            <!-- URL fallback -->
+            <p style="margin:0;color:#475569;font-size:11px;text-align:center;word-break:break-all;">
+              {verify_url}
+            </p>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="padding:20px 40px;text-align:center;border-top:1px solid #1e3a4a;background:#091320;">
+            <p style="margin:0;color:#475569;font-size:11px;">
+              &copy; Farmacia Saba — Panel Soporte<br>
+              Este correo fue generado automaticamente. No respondas a esta direccion.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
+
+    _send_email(cfg, user.email, "Verifica tu correo — Panel Soporte", html)

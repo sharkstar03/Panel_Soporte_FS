@@ -39,6 +39,8 @@ export const authApi = {
     })
   },
   avatarUrl: (userId: number) => `/api/auth/avatar/${userId}`,
+  sendEmailVerification: () => api.post<{ ok: boolean; detail?: string }>('/auth/email/send-verification'),
+  verifyEmail: (token: string) => api.get<{ ok: boolean }>(`/auth/email/verify/${token}`),
 }
 
 export const branchesApi = {

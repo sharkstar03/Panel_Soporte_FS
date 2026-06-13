@@ -28,6 +28,15 @@ class User(SQLModel, table=True):
     theme: str = Field(default="dark")
 
 
+class EmailVerificationToken(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    token: str = Field(index=True, unique=True)
+    expires_at: datetime
+    used_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class UserSmtpConfig(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", index=True, unique=True)
@@ -156,6 +165,8 @@ class SessionEventType(str, Enum):
     document_downloaded = "DOCUMENT_DOWNLOADED"
     user_profile_updated = "USER_PROFILE_UPDATED"
     user_avatar_updated = "USER_AVATAR_UPDATED"
+    email_verification_sent = "EMAIL_VERIFICATION_SENT"
+    email_verified = "EMAIL_VERIFIED"
 
 
 class SessionEvent(SQLModel, table=True):

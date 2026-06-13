@@ -16,6 +16,7 @@ import { DocumentsPage } from './pages/DocumentsPage'
 import { NewDocumentPage } from './pages/NewDocumentPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { ApprovalPage } from './pages/ApprovalPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { PageLoader } from './components/ui/Spinner'
 
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="/approve/:token" element={<ApprovalPage />} />
+      <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

@@ -264,3 +264,18 @@ def run_migrations() -> None:
             ADD COLUMN IF NOT EXISTS theme VARCHAR NOT NULL DEFAULT 'dark';
         """))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_user_email ON "user"(email);'))
+
+        # Tokens de verificación de correo
+        if not inspector.has_table("emailverificationtoken"):
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS emailverificationtoken (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES "user"(id),
+                    token VARCHAR NOT NULL UNIQUE,
+                    expires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                    used_at TIMESTAMP WITHOUT TIME ZONE,
+                    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS ix_emailverificationtoken_user_id ON emailverificationtoken(user_id);
+                CREATE INDEX IF NOT EXISTS ix_emailverificationtoken_token ON emailverificationtoken(token);
+            """))

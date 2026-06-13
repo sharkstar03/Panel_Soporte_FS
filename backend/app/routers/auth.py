@@ -1,6 +1,8 @@
+import secrets
 import time
 import uuid
 from collections import defaultdict
+from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Lock
 
@@ -12,11 +14,15 @@ from sqlmodel import Session, select
 from app.audit import log_event
 from app.config import settings
 from app.deps import get_current_user, get_db, get_user_permission_codes
+from app.email import send_verification_email
 from app.files import read_upload
-from app.models import Role, SessionEventType, User, UserRoleLink
+from app.models import EmailVerificationToken, Role, SessionEventType, User, UserRoleLink
 from app.s3 import s3_client
 from app.schemas import ChangePasswordIn, LoginIn, ProfileUpdateIn, TokenOut, UserOut
 from app.security import create_access_token, hash_password, password_policy_errors, verify_password
+
+_EMAIL_VERIFICATION_TTL = timedelta(hours=24)
+_EMAIL_VERIFICATION_COOLDOWN = timedelta(minutes=2)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -290,4 +296,60 @@ def change_password(
     db.commit()
     log_event(db, SessionEventType.user_password_changed, user_id=user.id,
               metadata={"target_user_id": user.id, "by": "self"})
+    return {"ok": True}
+
+
+@router.post("/email/send-verification")
+def send_email_verification(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not user.email:
+        raise HTTPException(status_code=400, detail="Primero debes configurar un correo en tu perfil")
+    if user.email_verified:
+        return {"ok": True, "detail": "El correo ya está verificado"}
+
+    now = datetime.utcnow()
+    last = db.exec(
+        select(EmailVerificationToken)
+        .where(EmailVerificationToken.user_id == user.id)
+        .order_by(EmailVerificationToken.created_at.desc())
+    ).first()
+    if last and now - last.created_at < _EMAIL_VERIFICATION_COOLDOWN:
+        raise HTTPException(status_code=429, detail="Espera un momento antes de solicitar otro correo de verificación")
+
+    token = secrets.token_urlsafe(32)
+    record = EmailVerificationToken(
+        user_id=user.id,
+        token=token,
+        expires_at=now + _EMAIL_VERIFICATION_TTL,
+    )
+    db.add(record)
+    db.commit()
+
+    send_verification_email(db, user, token)
+    log_event(db, SessionEventType.email_verification_sent, user_id=user.id, metadata={"target_user_id": user.id})
+    return {"ok": True}
+
+
+@router.get("/email/verify/{token}")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    record = db.exec(select(EmailVerificationToken).where(EmailVerificationToken.token == token)).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Token inválido")
+    if record.used_at is not None:
+        raise HTTPException(status_code=400, detail="Este enlace ya fue utilizado")
+    if datetime.utcnow() > record.expires_at:
+        raise HTTPException(status_code=400, detail="Este enlace ha expirado")
+
+    user = db.get(User, record.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user.email_verified = True
+    record.used_at = datetime.utcnow()
+    db.add(user)
+    db.add(record)
+    db.commit()
+    log_event(db, SessionEventType.email_verified, user_id=user.id, metadata={"target_user_id": user.id})
     return {"ok": True}
