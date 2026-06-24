@@ -14,6 +14,7 @@ class UserRole(str, Enum):
 
 
 class User(SQLModel, table=True):
+    __tablename__ = "auth_usuario"
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(index=True, unique=True)
     password_hash: str
@@ -30,8 +31,9 @@ class User(SQLModel, table=True):
 
 
 class EmailVerificationToken(SQLModel, table=True):
+    __tablename__ = "auth_token_verificacion"
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id", index=True)
+    user_id: int = Field(foreign_key="auth_usuario.id", index=True)
     token: str = Field(index=True, unique=True)
     expires_at: datetime
     used_at: Optional[datetime] = None
@@ -39,8 +41,9 @@ class EmailVerificationToken(SQLModel, table=True):
 
 
 class PasswordResetToken(SQLModel, table=True):
+    __tablename__ = "auth_token_reset"
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id", index=True)
+    user_id: int = Field(foreign_key="auth_usuario.id", index=True)
     token: str = Field(index=True, unique=True)
     expires_at: datetime
     used_at: Optional[datetime] = None
@@ -48,8 +51,9 @@ class PasswordResetToken(SQLModel, table=True):
 
 
 class EmailOTP(SQLModel, table=True):
+    __tablename__ = "auth_otp"
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id", index=True)
+    user_id: int = Field(foreign_key="auth_usuario.id", index=True)
     code_hash: str
     expires_at: datetime
     used_at: Optional[datetime] = None
@@ -58,8 +62,9 @@ class EmailOTP(SQLModel, table=True):
 
 
 class UserSmtpConfig(SQLModel, table=True):
+    __tablename__ = "auth_config_smtp"
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id", index=True, unique=True)
+    user_id: int = Field(foreign_key="auth_usuario.id", index=True, unique=True)
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_username: str = ""
@@ -76,6 +81,7 @@ class AssetType(str, Enum):
 
 
 class Branch(SQLModel, table=True):
+    __tablename__ = "inventario_sucursal"
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     code: Optional[str] = Field(default=None, index=True)
@@ -85,13 +91,14 @@ class Branch(SQLModel, table=True):
 
 
 class Asset(SQLModel, table=True):
+    __tablename__ = "inventario_activo"
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     type: AssetType = Field(default=AssetType.pc)
     owner: Optional[str] = None
     location: Optional[str] = None
     notes: Optional[str] = None
-    branch_id: Optional[int] = Field(default=None, foreign_key="branch.id", index=True)
+    branch_id: Optional[int] = Field(default=None, foreign_key="inventario_sucursal.id", index=True)
 
     hostname: Optional[str] = Field(default=None, index=True)
     ip: Optional[str] = Field(default=None, index=True)
@@ -134,9 +141,10 @@ class SessionResult(str, Enum):
 
 
 class SupportSession(SQLModel, table=True):
+    __tablename__ = "soporte_sesion"
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(index=True, foreign_key="user.id")
-    asset_id: int = Field(index=True, foreign_key="asset.id")
+    user_id: int = Field(index=True, foreign_key="auth_usuario.id")
+    asset_id: int = Field(index=True, foreign_key="inventario_activo.id")
 
     tool: RemoteTool = Field(index=True)
     reason: str
@@ -197,17 +205,19 @@ class SessionEventType(str, Enum):
 
 
 class SessionEvent(SQLModel, table=True):
+    __tablename__ = "soporte_evento"
     id: Optional[int] = Field(default=None, primary_key=True)
-    session_id: Optional[int] = Field(default=None, index=True, foreign_key="supportsession.id")
-    user_id: Optional[int] = Field(default=None, index=True, foreign_key="user.id")
+    session_id: Optional[int] = Field(default=None, index=True, foreign_key="soporte_sesion.id")
+    user_id: Optional[int] = Field(default=None, index=True, foreign_key="auth_usuario.id")
     type: str = Field(index=True)   # was SessionEventType enum; converted to VARCHAR to avoid enum sync issues
     at: datetime = Field(default_factory=datetime.utcnow, index=True)
     metadata_json: Optional[str] = None
 
 
 class Attachment(SQLModel, table=True):
+    __tablename__ = "soporte_adjunto"
     id: Optional[int] = Field(default=None, primary_key=True)
-    session_id: int = Field(index=True, foreign_key="supportsession.id")
+    session_id: int = Field(index=True, foreign_key="soporte_sesion.id")
     filename: str
     mime: str
     size: int
@@ -217,6 +227,7 @@ class Attachment(SQLModel, table=True):
 
 
 class Link(SQLModel, table=True):
+    __tablename__ = "conocimiento_enlace"
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
     url: str
@@ -225,6 +236,7 @@ class Link(SQLModel, table=True):
 
 
 class KBArticle(SQLModel, table=True):
+    __tablename__ = "conocimiento_articulo"
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
     content_md: str
@@ -235,16 +247,18 @@ class KBArticle(SQLModel, table=True):
 
 
 class SystemSetting(SQLModel, table=True):
+    __tablename__ = "sistema_config"
     id: Optional[int] = Field(default=None, primary_key=True)
     key: str = Field(index=True, unique=True)
     value: str
     description: Optional[str] = None
     category: str = "general"
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    updated_by_id: Optional[int] = Field(default=None, foreign_key="auth_usuario.id")
 
 
 class PasswordEntry(SQLModel, table=True):
+    __tablename__ = "boveda_password"
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     username: Optional[str] = None
@@ -253,12 +267,13 @@ class PasswordEntry(SQLModel, table=True):
     notes: Optional[str] = None
     category: str = "general"
     roles_allowed: str = "admin,supervisor,tecnico"
-    created_by_id: int = Field(foreign_key="user.id")
+    created_by_id: int = Field(foreign_key="auth_usuario.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class OTPEntry(SQLModel, table=True):
+    __tablename__ = "boveda_otp"
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     issuer: Optional[str] = None
@@ -269,7 +284,7 @@ class OTPEntry(SQLModel, table=True):
     period: int = 30
     category: str = "general"
     roles_allowed: str = "admin,supervisor,tecnico"
-    created_by_id: int = Field(foreign_key="user.id")
+    created_by_id: int = Field(foreign_key="auth_usuario.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -283,6 +298,7 @@ class KeyType(str, Enum):
 
 
 class SecurityKeyEntry(SQLModel, table=True):
+    __tablename__ = "boveda_clave"
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     key_type: KeyType = Field(default=KeyType.api_key, index=True)
@@ -291,7 +307,7 @@ class SecurityKeyEntry(SQLModel, table=True):
     expires_at: Optional[datetime] = None
     category: str = "general"
     roles_allowed: str = "admin,supervisor,tecnico"
-    created_by_id: int = Field(foreign_key="user.id")
+    created_by_id: int = Field(foreign_key="auth_usuario.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -310,14 +326,15 @@ class DocumentStatus(str, Enum):
 
 
 class Document(SQLModel, table=True):
+    __tablename__ = "documentos_documento"
     id: Optional[int] = Field(default=None, primary_key=True)
     type: DocumentType = Field(index=True)
     title: str = Field(index=True)
     data_json: str  # JSON blob of form fields
-    template_id: Optional[int] = Field(default=None, foreign_key="documenttemplate.id", index=True)
+    template_id: Optional[int] = Field(default=None, foreign_key="documentos_plantilla.id", index=True)
     rendered_html: Optional[str] = None
     status: DocumentStatus = Field(default=DocumentStatus.pending, index=True)
-    created_by_id: int = Field(foreign_key="user.id", index=True)
+    created_by_id: int = Field(foreign_key="auth_usuario.id", index=True)
     approver_email: str
     token: str = Field(index=True, unique=True)
     token_expires_at: datetime = Field(...)  # created_at + 7 days, set by router
@@ -328,8 +345,9 @@ class Document(SQLModel, table=True):
 
 
 class DocumentEvidence(SQLModel, table=True):
+    __tablename__ = "documentos_evidencia"
     id: Optional[int] = Field(default=None, primary_key=True)
-    document_id: int = Field(foreign_key="document.id", index=True)
+    document_id: int = Field(foreign_key="documentos_documento.id", index=True)
     checklist_item: str
     storage_key: str
     filename: str
@@ -338,12 +356,13 @@ class DocumentEvidence(SQLModel, table=True):
 
 
 class DocumentTemplate(SQLModel, table=True):
+    __tablename__ = "documentos_plantilla"
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
     doc_type: DocumentType = Field(index=True)
     html: str
     is_default: bool = Field(default=False, index=True)
-    created_by_id: int = Field(foreign_key="user.id", index=True)
+    created_by_id: int = Field(foreign_key="auth_usuario.id", index=True)
     updated_at: datetime = Field(default_factory=datetime.utcnow, index=True)
 
 
@@ -359,18 +378,20 @@ class FiscalConfig(SQLModel, table=True):
     resto de secretos del panel.
     """
 
+    __tablename__ = "fiscal_config"
     id: Optional[int] = Field(default=1, primary_key=True)
     username: str = Field(default="")
     password_enc: str = Field(default="")
     taxpayer_id: str = Field(default="")
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    updated_by_id: Optional[int] = Field(default=None, foreign_key="auth_usuario.id")
 
 
 class FiscalMapping(SQLModel, table=True):
     """Datos internos editables por el equipo de soporte para cada impresora,
     indexados por número de serie (no provienen de la DGI)."""
 
+    __tablename__ = "fiscal_mapeo"
     serie: str = Field(primary_key=True)
     sucursal: Optional[str] = Field(default=None, index=True)
     caja: Optional[str] = None
@@ -380,7 +401,7 @@ class FiscalMapping(SQLModel, table=True):
     estado_interno: Optional[str] = None
     # Activo del panel vinculado a esta impresora: las conexiones remotas se
     # gestionan desde Activos/Sesiones (y quedan registradas como sesión).
-    asset_id: Optional[int] = Field(default=None, foreign_key="asset.id", index=True)
+    asset_id: Optional[int] = Field(default=None, foreign_key="inventario_activo.id", index=True)
     # (Heredados del proyecto original; ya no se usan en la UI, se conservan por
     # compatibilidad con datos migrados.)
     anydesk_id: Optional[str] = None
@@ -396,6 +417,7 @@ class FiscalMapping(SQLModel, table=True):
 class FiscalMachineIndex(SQLModel, table=True):
     """Caché serie -> machineId/taxpayerId resuelta desde la API de PlaceFT."""
 
+    __tablename__ = "fiscal_indice_maquina"
     serie: str = Field(primary_key=True)
     machine_id: Optional[str] = None
     taxpayer_id: Optional[str] = None
@@ -405,6 +427,7 @@ class FiscalMachineIndex(SQLModel, table=True):
 class FiscalZCache(SQLModel, table=True):
     """Último Reporte Z conocido por serie (persistente entre consultas)."""
 
+    __tablename__ = "fiscal_cache_z"
     serie: str = Field(primary_key=True)
     datez: Optional[str] = None
     numz: Optional[str] = None
@@ -415,10 +438,12 @@ class FiscalZCache(SQLModel, table=True):
 class FiscalDiagnosticOption(SQLModel, table=True):
     """Opciones de diagnóstico rápido reutilizables para las impresoras."""
 
+    __tablename__ = "fiscal_opcion_diagnostico"
     option: str = Field(primary_key=True)
 
 
 class Permission(SQLModel, table=True):
+    __tablename__ = "rbac_permiso"
     id: Optional[int] = Field(default=None, primary_key=True)
     code: str = Field(index=True, unique=True)
     category: str = Field(default="general", index=True)
@@ -426,6 +451,7 @@ class Permission(SQLModel, table=True):
 
 
 class Role(SQLModel, table=True):
+    __tablename__ = "rbac_rol"
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
     description: str = Field(default="")
@@ -433,10 +459,12 @@ class Role(SQLModel, table=True):
 
 
 class RolePermission(SQLModel, table=True):
-    role_id: int = Field(foreign_key="role.id", primary_key=True)
-    permission_id: int = Field(foreign_key="permission.id", primary_key=True)
+    __tablename__ = "rbac_rol_permiso"
+    role_id: int = Field(foreign_key="rbac_rol.id", primary_key=True)
+    permission_id: int = Field(foreign_key="rbac_permiso.id", primary_key=True)
 
 
 class UserRoleLink(SQLModel, table=True):
-    user_id: int = Field(foreign_key="user.id", primary_key=True)
-    role_id: int = Field(foreign_key="role.id", primary_key=True)
+    __tablename__ = "rbac_usuario_rol"
+    user_id: int = Field(foreign_key="auth_usuario.id", primary_key=True)
+    role_id: int = Field(foreign_key="rbac_rol.id", primary_key=True)

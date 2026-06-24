@@ -1,0 +1,50 @@
+# Configuración del stack local de Supabase (Supabase CLI).
+# Levantar con:  supabase start    (requiere Docker y el CLI de Supabase)
+# Documentación: https://supabase.com/docs/guides/cli/config
+#
+# El esquema de la base lo crea el backend al arrancar (SQLModel.create_all +
+# app/migrations.py). Aquí solo definimos el stack local (Postgres, Studio, etc.).
+
+project_id = "panel_soporte_fs"
+
+[api]
+enabled = true
+port = 54321
+# Esquemas expuestos por PostgREST. Las tablas viven en "public".
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Debe coincidir con la imagen supabase/postgres del docker-compose (17.x).
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+# Servidor de correo de prueba (captura los emails que envía el panel en local).
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+# El panel usa su propio sistema de auth (JWT propio), no Supabase Auth.
+[auth]
+enabled = false
+
+[analytics]
+enabled = false
