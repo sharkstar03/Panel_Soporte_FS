@@ -2,6 +2,48 @@ from sqlalchemy import inspect, text
 
 from app.db import engine
 
+# Mapeo de nombres heredados -> nombres segmentados por módulo (issue #1).
+# El orden no importa: el renombrado es idempotente y por tabla.
+TABLE_RENAMES: list[tuple[str, str]] = [
+    # auth
+    ("user", "auth_usuario"),
+    ("emailverificationtoken", "auth_token_verificacion"),
+    ("passwordresettoken", "auth_token_reset"),
+    ("emailotp", "auth_otp"),
+    ("usersmtpconfig", "auth_config_smtp"),
+    # rbac
+    ("permission", "rbac_permiso"),
+    ("role", "rbac_rol"),
+    ("rolepermission", "rbac_rol_permiso"),
+    ("userrolelink", "rbac_usuario_rol"),
+    # inventario
+    ("branch", "inventario_sucursal"),
+    ("asset", "inventario_activo"),
+    # soporte
+    ("supportsession", "soporte_sesion"),
+    ("sessionevent", "soporte_evento"),
+    ("attachment", "soporte_adjunto"),
+    # boveda
+    ("passwordentry", "boveda_password"),
+    ("otpentry", "boveda_otp"),
+    ("securitykeyentry", "boveda_clave"),
+    # conocimiento
+    ("link", "conocimiento_enlace"),
+    ("kbarticle", "conocimiento_articulo"),
+    # documentos
+    ("document", "documentos_documento"),
+    ("documentevidence", "documentos_evidencia"),
+    ("documenttemplate", "documentos_plantilla"),
+    # fiscal
+    ("fiscalconfig", "fiscal_config"),
+    ("fiscalmapping", "fiscal_mapeo"),
+    ("fiscalmachineindex", "fiscal_indice_maquina"),
+    ("fiscalzcache", "fiscal_cache_z"),
+    ("fiscaldiagnosticoption", "fiscal_opcion_diagnostico"),
+    # sistema
+    ("systemsetting", "sistema_config"),
+]
+
 
 def _add_enum_values(enum_name: str, values: list[str]) -> None:
     """Agrega valores a un enum de PostgreSQL de forma segura.
@@ -311,3 +353,20 @@ def run_migrations() -> None:
                 );
                 CREATE INDEX IF NOT EXISTS ix_emailotp_user_id ON emailotp(user_id);
             """))
+
+        # ─────────────────────────────────────────────────────────────────
+        # Segmentación de tablas por módulo (issue #1).
+        # Renombra las tablas heredadas a la convención "modulo_nombre" para
+        # que queden agrupadas y ordenadas. Idempotente: solo renombra cuando
+        # el nombre viejo existe y el nuevo aún no. PostgreSQL conserva las
+        # claves foráneas e índices al renombrar (referencian por OID).
+        # ─────────────────────────────────────────────────────────────────
+        existing_tables = {
+            row[0]
+            for row in conn.execute(
+                text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+            )
+        }
+        for old_name, new_name in TABLE_RENAMES:
+            if old_name in existing_tables and new_name not in existing_tables:
+                conn.execute(text(f'ALTER TABLE "{old_name}" RENAME TO "{new_name}";'))

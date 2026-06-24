@@ -61,6 +61,32 @@ Para pruebas locales sin secretos fuertes, usa `APP_ENV=development` (desactiva
 las validaciones estrictas). El stack de preview (`docker-compose.preview.yml`)
 ya viene en modo desarrollo. **No uses ese modo en producción.**
 
+## Desarrollo con Supabase local (Supabase CLI)
+El repo incluye `supabase/config.toml` para levantar el stack local de Supabase
+(Postgres + Studio + correo de prueba) con el [CLI de Supabase](https://supabase.com/docs/guides/cli).
+
+```bash
+# 1. Instala el CLI (una vez): https://supabase.com/docs/guides/cli
+# 2. Levanta el stack local (usa Docker por debajo)
+supabase start
+
+# 3. Apunta el backend al Postgres local de Supabase (puerto 54322)
+#    en tu .env:
+DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:54322/postgres
+APP_ENV=development
+
+# 4. Arranca el backend (crea el esquema automáticamente al iniciar)
+cd backend && uvicorn app.main:app --reload
+```
+
+- **Studio** (explorar tablas): http://127.0.0.1:54323
+- **Correos de prueba** (verificación, 2FA, etc.): http://127.0.0.1:54324
+- El esquema lo crea el backend al arrancar (`SQLModel.create_all` + `app/migrations.py`).
+  Las tablas quedan agrupadas por módulo con prefijos (`auth_`, `rbac_`,
+  `inventario_`, `soporte_`, `boveda_`, `conocimiento_`, `documentos_`,
+  `fiscal_`, `sistema_`).
+- Para detener el stack: `supabase stop` (agrega `--no-backup` para borrar los datos).
+
 ## Tests y CI
 El backend tiene una suite de tests (`pytest`) que corre con SQLite, sin
 necesidad de Docker ni PostgreSQL:

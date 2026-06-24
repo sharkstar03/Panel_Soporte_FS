@@ -22,6 +22,10 @@ backend/storage/
 *.db
 *.sqlite3
 
+# Supabase CLI (temporales del stack local; se conservan config.toml y seed.sql)
+supabase/.branches/
+supabase/.temp/
+
 # Sistema
 .DS_Store
 *.log

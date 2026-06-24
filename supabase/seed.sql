@@ -1,0 +1,6 @@
+-- Seed del stack local de Supabase.
+--
+-- El esquema (tablas, índices, claves foráneas) lo crea el backend al arrancar
+-- mediante SQLModel.create_all() y app/migrations.py, así que aquí NO se define
+-- el esquema. Este archivo queda disponible para datos de ejemplo opcionales en
+-- desarrollo local. Agrega INSERTs si los necesitas.
